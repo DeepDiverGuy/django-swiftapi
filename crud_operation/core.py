@@ -15,7 +15,7 @@ from django_swiftapi.modelcontrol.dynamic_environment import run_new_environment
 
 
 Model = models.Model
-default_UserAuthentication = settings.DEFAULT_USER_AUTHENTICATION_CLASS or djangoallauth_UserAuthentication
+default_UserAuthentication = getattr(settings, 'DEFAULT_USER_AUTHENTICATION_CLASS', None) or djangoallauth_UserAuthentication
 
 async def instance_maker(action: Literal["create", "retrieve", "update", "delete"], request, model:Model, instance_id:int=0, request_body:dict={}):
     if action=="create":

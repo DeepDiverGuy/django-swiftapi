@@ -117,17 +117,17 @@ async def dir_maker(instance:Model, files_param:Files_Param):
     if storage=='local':
         if not source_dir:
             if access == "public":
-                source_dir = settings.PUBLIC_LOCAL_FILE_WRITE_LOCATION
+                source_dir = getattr(settings, 'PUBLIC_LOCAL_FILE_WRITE_LOCATION', None)
             elif access == "private":
-                source_dir = settings.PRIVATE_LOCAL_FILE_WRITE_LOCATION
+                source_dir = getattr(settings, 'PRIVATE_LOCAL_FILE_WRITE_LOCATION', None)
 
     elif storage=='amazons3':
         if access == "public":
-            bucket = bucket or settings.PUBLIC_AMAZONS3_BUCKET_NAME
-            source_dir = source_dir or settings.PUBLIC_AMAZONS3_FILE_WRITE_LOCATION
+            bucket = bucket or getattr(settings, 'PUBLIC_AMAZONS3_BUCKET_NAME', None)
+            source_dir = source_dir or getattr(settings, 'PUBLIC_AMAZONS3_FILE_WRITE_LOCATION', None)
         elif access == "private":
-            bucket = bucket or settings.PRIVATE_AMAZONS3_BUCKET_NAME
-            source_dir = source_dir or settings.PRIVATE_AMAZONS3_FILE_WRITE_LOCATION
+            bucket = bucket or getattr(settings, 'PRIVATE_AMAZONS3_BUCKET_NAME', None)
+            source_dir = source_dir or getattr(settings, 'PRIVATE_AMAZONS3_FILE_WRITE_LOCATION', None)
 
     field_name = files_param.field_name
     dir = f'{source_dir}/{instance._meta.app_label}/{instance._meta.model_name}/{str(instance.id)}/{field_name}'
@@ -149,11 +149,11 @@ async def url_maker(abs_path:str, files_param:Files_Param, source_dir:str=None):
         return abs_path.split('/')[-1]
 
     if storage=='local':
-        source_dir = source_dir or settings.PUBLIC_LOCAL_FILE_WRITE_LOCATION
+        source_dir = source_dir or getattr(settings, 'PUBLIC_LOCAL_FILE_WRITE_LOCATION', None)
         url = abs_path.replace(source_dir, "") if source_dir else abs_path
-        url = f'{settings.PUBLIC_LOCAL_FILE_URL_PREFIX}{url}'
+        url = f'{getattr(settings, "PUBLIC_LOCAL_FILE_URL_PREFIX", "")}{url}'
     elif storage=='amazons3':
-        url = f'{settings.PUBLIC_AMAZONS3_FILE_URL_PREFIX}/{abs_path}'
+        url = f'{getattr(settings, "PUBLIC_AMAZONS3_FILE_URL_PREFIX", "")}/{abs_path}'
     
     return url
 
