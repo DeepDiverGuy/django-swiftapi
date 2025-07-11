@@ -1,4 +1,4 @@
-# Django SwiftAPI Documentation
+# Django SwiftAPI Documentation [Still Under Development]
 
 ## Overview
 
@@ -299,7 +299,7 @@ The system automatically provides these file operations:
 ---
 
 ## Authentication & Permissions
-`django_swiftapi` is highly compatible with [django-allauth](#https://docs.allauth.org/en/latest/). It's provided as out-of-the-box. So, if you're using django-allauth, you can use this directly in your modelcontrollers.
+`django_swiftapi` is highly compatible with [django-allauth](#https://docs.allauth.org/en/latest/). So, if you're using django-allauth, you can validate authentications directly in your modelcontrollers.
 
 ### Using Built-in Authentication Classes
 
@@ -308,11 +308,6 @@ from django_swiftapi.modelcontrol.authenticators import (
     djangoallauth_UserAuthentication,
     base_UserAuthentication
 )
-
-# Using base authentication
-@api_controller("/api", permissions=[base_UserAuthentication()])
-class MyController(SwiftBaseModelController):
-    pass
 
 # Using allauth authentication
 @api_controller("/api", permissions=[djangoallauth_UserAuthentication()])
