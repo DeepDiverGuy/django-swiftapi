@@ -21,7 +21,10 @@ async def instance_maker(action: Literal["create", "retrieve", "update", "delete
     if action=="create":
         instance = model()
         if model.created_by_field:
-            setattr(instance, model.created_by_field, request.user)
+            try:
+                setattr(instance, model.created_by_field, request.user)
+            except:
+                setattr(instance, model.created_by_field, None)
     else: # elif action=="retrieve" or action=="update" or action=="delete":
         instance = await model.objects.filter(id=instance_id).afirst()
         if instance is None:

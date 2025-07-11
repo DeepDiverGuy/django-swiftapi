@@ -1,12 +1,13 @@
 from django.db.models import Model
+from ninja.pagination import paginate
+from ninja import Schema
 from ninja_extra import (
-    ModelControllerBase, 
+    ModelControllerBase,
+    ModelService,
     http_get,
     http_post, 
     http_delete
 )
-from ninja.pagination import paginate
-from ninja import Schema
 from django_swiftapi.modelcontrol.dynamic_environment import run_new_environment
 from django_swiftapi.modelcontrol.base_schemas import schema_generator, filterschema_generator
 from django_swiftapi.crud_operation.core import crud_handler
@@ -105,8 +106,14 @@ class SwiftBaseModelController(ModelControllerBase):
     delete_obj_permission_check: bool = False
     delete_premium_check: bool = False
 
+    def __init__(self):
+        # Instantiate your model (replace with your actual model instantiation)
+        self.model_service = ModelService(model=self.model_to_control)
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+
+        # cls.service = ModelService(model=cls.model_to_control)
 
         if cls.create_enabled:
             create_request_schemas = cls.create_request_schemas or schema_generator(model=cls.model_to_control, schema_type='request', action="create", files_fields_only=False)
