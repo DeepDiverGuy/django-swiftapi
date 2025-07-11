@@ -21,9 +21,6 @@ This documentation explains how to use these components, configure your project,
 - [URL Configuration](#url-configuration)
 - [File Handling](#file-handling)
 - [Authentication & Permissions](#authentication--permissions)
-- [Advanced Features](#advanced-features)
-- [Full Example](#full-example)
-- [Extending](#extending)
 
 ---
 
