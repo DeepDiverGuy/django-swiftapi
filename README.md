@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Django SwiftAPI** provides a powerful yet simple abstraction for automatically generating CRUD APIs, complete with automatic schema generation and robust file handling — currently supporting both local storage and Amazon S3, built on top of [django-ninja-extra](https://eadwincode.github.io/django-ninja-extra/). The core of this system is the use of:
+**Django SwiftAPI** provides a powerful yet simple abstraction for automatically generating CRUD APIs, automatic schema generation and robust file handling — currently supporting both local storage and Amazon S3, built on top of [django-ninja-extra](https://eadwincode.github.io/django-ninja-extra/). The core of this system is the use of:
 
 - `SwiftBaseModel`: A base model with built-in support for controlling request & responses, CRUD specifications, file fields, ownership, schema customization, object validations etc all out-of-the-box.
 - `SwiftBaseModelController`: A customizable controller that automates schema generations & CRUD operations. All you need to do is plug-in your `SwiftBaseModel` & it handles everything in the background. 
