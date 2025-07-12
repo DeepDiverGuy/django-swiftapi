@@ -12,6 +12,8 @@ django_swiftapi/crud_operation/__init__.py
 django_swiftapi/crud_operation/core.py
 django_swiftapi/crud_operation/files_handlers.py
 django_swiftapi/crud_operation/files_validators.py
+django_swiftapi/crud_operation/utils/__init__.py
+django_swiftapi/crud_operation/utils/aws_s3_utils.py
 django_swiftapi/modelcontrol/__init__.py
 django_swiftapi/modelcontrol/authenticators.py
 django_swiftapi/modelcontrol/base_modelcontrollers.py

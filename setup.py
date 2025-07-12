@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='django_swiftapi',
-    version='0.1.0',
+    version='0.1.1',
     description='Easy to use django package for building APIs quicker than ever, built on top of django-ninja-extra',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
