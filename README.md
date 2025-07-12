@@ -16,8 +16,7 @@ This documentation explains how to use these components, configure your project,
 - [Installation](#installation)
 - [Database Recommendation](#database-recommendation)
 - [Model Definition](#model-definition)
-- [Controller Setup](#controller-setup)
-- [Settings Configuration](#settings-configuration)
+- [Model-Controller Setup](#model-controller-setup)
 - [URL Configuration](#url-configuration)
 - [File Handling](#file-handling)
 - [Authentication & Permissions](#authentication--permissions)
@@ -109,9 +108,9 @@ class MyDocument(SwiftBaseModel):
 | `created_by_field` | str | `'created_by'` | Field name for ownership tracking. you can modify it but default is recommended |
 ---
 
-## Controller Setup
+## Model-Controller Setup
 
-Create controllers by inheriting from `SwiftBaseModelController`:
+Create modelcontrollers by inheriting from `SwiftBaseModelController`:
 
 All Configurations:
 
@@ -120,7 +119,7 @@ from ninja_extra import api_controller, permissions
 from django_swiftapi.modelcontrol.base_modelcontrollers import SwiftBaseModelController
 from .models import MyDocument
 
-@api_controller("/documents", permissions=[permissions.IsAuthenticated])
+@api_controller("/documents",)
 class DocumentController(SwiftBaseModelController):
 
     model_to_control = MyDocument
@@ -188,7 +187,7 @@ class DocumentController(SwiftBaseModelController):
     delete_premium_check: bool = False
 ```
 
-### Controller Options
+### Model-Controller Options
 
 #### CRUD Operations
 
@@ -252,6 +251,7 @@ urlpatterns = [
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 ```
+That's it!
 
 ---
 
@@ -280,6 +280,24 @@ files_params_list = [
         validate_images=False,
     ),
 ]
+```
+Then in settings.py (use what you need):
+```
+# local
+PUBLIC_LOCAL_FILE_WRITE_LOCATION = "" # ex: 'dummy_site_files/public'
+PUBLIC_LOCAL_FILE_URL_PREFIX = "" # ex: '/media'
+PRIVATE_LOCAL_FILE_WRITE_LOCATION = "" # ex: 'dummy_site_files/private'
+
+# amazon s3
+PUBLIC_AMAZONS3_BUCKET_NAME = ""
+PUBLIC_AMAZONS3_FILE_WRITE_LOCATION = ""
+PUBLIC_AMAZONS3_FILE_URL_PREFIX = ""
+PRIVATE_AMAZONS3_BUCKET_NAME = ""
+PRIVATE_AMAZONS3_FILE_WRITE_LOCATION = ""
+
+# Needed in both cases
+MEDIA_ROOT = PUBLIC_LOCAL_FILE_WRITE_LOCATION
+MEDIA_URL = '/media/'  # this value '/media/' is necessary for serving files during development
 ```
 
 ### File Operations
@@ -368,6 +386,7 @@ POST /api/documents/filter
     "created__gte": "2024-01-01"
 }
 ```
+You can basically use everything provided by django-ninja & django-ninja-extra!
 
 ---
 
