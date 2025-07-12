@@ -1,0 +1,9 @@
+django
+django-ninja
+ninja-schema
+django-ninja-extra
+django-allauth
+phonenumbers
+boto3
+asgiref
+Pillow
