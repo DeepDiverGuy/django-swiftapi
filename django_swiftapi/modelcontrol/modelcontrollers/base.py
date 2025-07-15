@@ -8,8 +8,8 @@ from ninja_extra import (
     http_post, 
     http_delete
 )
-from django_swiftapi.modelcontrol.dynamic_environment import run_new_environment
-from django_swiftapi.modelcontrol.base_schemas import schema_generator, filterschema_generator
+from django_swiftapi.dynamic_environment import run_new_environment
+from django_swiftapi.modelcontrol.schemas.base import schema_generator, filterschema_generator
 from django_swiftapi.crud_operation.core import crud_handler
 
 
@@ -17,31 +17,56 @@ from django_swiftapi.crud_operation.core import crud_handler
 # @api_controller("/something", permissions=[])
 class SwiftBaseModelController(ModelControllerBase):
     """
-    this is a customized ModelControllerBase
-    - `operation_handler` is the handler that is used to handle CRUD operations. default is `crud_handler`.
-    - `model_to_control` is the model that you want to control.
+    A customizable base-modelcontroller for handling CRUD operations on `SwiftBaseModel`.
 
-    - format for all request_schemas, in case you wanna specify your own: `[('request_body', 'request_body_schema', <schema_class>, False)]`. `False` at the end means this schema is not required while sending requests.
-    - format for all response_schemas, in case you wanna specify your own: `{200: <schema_class>}` # 200 is the status code
-    - custom_permissions_list: default is `[]`, means `@api_controller`s permissions are used. if specified [permissions.AllowAny], all requests pass without authentication.
-    - obj_permission_check: if `True`, it will validate the requesting user against `model.created_by_field` before any crud operation.
+    Extend this class to enable fine-grained control over API endpoints, request/response schemas,
+    permission checks.
 
-    - `filter` api can do both filter & search (url?search=some_field_value)
+    Attributes:
+        operation_handler (callable): Handler responsible for performing the CRUD logic. Default is `crud_handler`.
+        model_to_control (Model): Django model class to be managed by the controller.
 
-    # "premium" refers to the premium features of your project (your server's paid features). it's still in development. ignore it for now.
-    - `premium_check`: if `True`, it will check if the user's payment status is ok.
-    - `premium_checker` is a certain class that contains some specified methods that `crud_handler` uses
-    - `product_type` is one of the `plan` field's choices of the `product` model, its necessary for internal usage because these plans are internal, not publicly accessible. user plans are specified as different fields in the `product` model
+        # ignore these `premium` attributes below. these are not implemented yet.
+        premium_checker (Optional[class]): Custom class for validating premium access.
+        product_type (Optional[str]): Internal product plan type used in premium validation.
+        product_asset_model (Optional[Model]): Asset model associated with the product.
+        parent_field_name (Optional[str]): Field name linking to the parent model, used for `max_add` logic.
+
+    Supported Operations (flags below enable/disable each route):
+        - create_enabled: POST route to create a new model instance.
+        - retrieve_one_enabled: GET route to retrieve a single item.
+        - filter_enabled: GET route with filtering and search.
+        - update_enabled: PATCH/PUT route to update existing items.
+        - file_retrieve_enabled: GET route to retrieve a specific file of an item.
+        - files_remove_enabled: POST/DELETE route to remove files from an item.
+        - delete_enabled: DELETE route to remove an item and its files.
+
+    Request/Response Customization:
+        - Each operation supports `*_request_schemas` and `*_response_schemas` for overriding default schemas.
+        - Request schemas use: `[('body', 'body_schema', SchemaClass, required:bool)]`
+        - Response schemas use: `{status_code: SchemaClass}`
+
+    Permission Control:
+        - `*_custom_permissions_list`: List of permission classes (e.g., [permissions.AllowAny]).
+          If empty list (`[]`), defaults to `@api_controller` permissions.
+        - `*_obj_permission_check`: If True, checks if `obj.created_by_field == request.user`.
+        
+        # ignore this attribute below. this is not implemented yet.
+        - `*_premium_check`: If True, validates if the user's payment plan is eligible.
+
+    Note:
+        This class is designed to work with the `@api_controller` decorator.
     """
 
     operation_handler = crud_handler
 
     model_to_control: Model
 
+    # ignore anything referred to as "premium", this is not implemented yet
     premium_checker = None
     product_type: str = None
     product_asset_model: Model = None
-    parent_field_name: str = None  # string representing the connector field to the parent model (important for checking `max_add`)
+    parent_field_name: str = None  # string representing the connector field to the parent model (important for checking max_add)
 
     create_enabled: bool = False
     create_path: str = 'create'
@@ -100,20 +125,17 @@ class SwiftBaseModelController(ModelControllerBase):
     delete_enabled: bool = False
     delete_path: str = '{id}/delete'
     delete_info: str = 'delete an item with all its files'
-    # delete_request_schemas: list[tuple[str, str, Schema, bool]] = None
     delete_response_schemas: dict[int, Schema] = None
     delete_custom_permissions_list: list = []
     delete_obj_permission_check: bool = False
     delete_premium_check: bool = False
 
+
     def __init__(self):
-        # Instantiate your model (replace with your actual model instantiation)
         self.model_service = ModelService(model=self.model_to_control)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-
-        # cls.service = ModelService(model=cls.model_to_control)
 
         if cls.create_enabled:
             create_request_schemas = cls.create_request_schemas or schema_generator(model=cls.model_to_control, schema_type='request', action="create", files_fields_only=False)

@@ -100,7 +100,7 @@ def schema_generator(
 class CustomFilterSchema(FilterSchema):
 
     """
-    Curently `FilterSchema.get_filter_expression()` throws error if a value of a ManyToMany field is provided. I did a Pull Request to the django-ninja repo with this fix a couple days ago which haven't been merged yet. So, I extended the class with this fix. 
+    Curently `ninja.FilterSchema.get_filter_expression()` throws error if a value of a ManyToMany field is provided. I sent a Pull Request to django-ninja repo with the fix which haven't been merged to this date. So, I extended the class with this fix. 
     """
 
     def _resolve_field_expression(
@@ -147,30 +147,23 @@ class CustomFilterSchema(FilterSchema):
             )
 
 def filterschema_generator(model: Type[Model]) -> Type[Schema]:
-    # Get the app_label and model_name
+
     app_label = model._meta.app_label
     model_name = model._meta.model_name
 
-    # Get the list of fields to exclude
     exclude_fields = getattr(model, 'exclude_in_request', []) + model.files_fields
 
-    # Prepare the dynamic attributes for the FilterSchema
     schema_fields = {}
     
-    # Loop through all model fields
     for field in model._meta.get_fields():
         field_name = field.name
         
-        # Skip excluded fields
         if field_name in exclude_fields:
             continue
 
-        # Set the correct type annotation for each field
         if isinstance(field, ForeignKey) or isinstance(field, OneToOneField):
-            # ForeignKey and OneToOneField should be treated as integer IDs
             field_type = Optional[int]
         elif isinstance(field, ManyToManyField):
-            # ManyToManyField should be treated as a list of integer IDs
             field_type = Optional[List[int]]
         elif isinstance(field, (models.CharField, models.TextField)):
             field_type = Optional[str]
@@ -180,17 +173,12 @@ def filterschema_generator(model: Type[Model]) -> Type[Schema]:
             field_type = Optional[bool]
         elif isinstance(field, models.FloatField):
             field_type = Optional[float]
-        # Add more field types as needed
         else:
             field_type = Optional[str]  # Defaulting to string if unhandled
-        
-        # Add the field to the schema
         schema_fields[field_name] = (field_type, None)
 
-    # Generate the schema name dynamically
     schema_name = f'{app_label}_{model_name}FilterRequestSchema'
 
-    # Use pydantic's `create_model` to create a dynamic schema class
     filter_schema = create_model(schema_name, **schema_fields, __base__=CustomFilterSchema)
 
     return [("filters", "request_body_schema", filter_schema, False)]

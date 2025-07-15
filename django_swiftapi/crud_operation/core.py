@@ -3,19 +3,19 @@ from django.conf import settings
 from django.db import models
 from ninja.responses import Response
 from ninja import Schema
-from django_swiftapi.modelcontrol.authenticators import djangoallauth_UserAuthentication
-from django_swiftapi.crud_operation.files_handlers import (
+from django_swiftapi.modelcontrol.authenticators.base import BaseUserAuthentication
+from django_swiftapi.crud_operation.file_operations.files_handlers import (
     Config,
     Payload,
     files_upload_handler,
     files_remove_handler,
     files_retrieve_handler,
 )
-from django_swiftapi.modelcontrol.dynamic_environment import run_new_environment
+from django_swiftapi.dynamic_environment import run_new_environment
 
 
 Model = models.Model
-default_UserAuthentication = getattr(settings, 'DEFAULT_USER_AUTHENTICATION_CLASS', None) or djangoallauth_UserAuthentication
+default_UserAuthentication = getattr(settings, 'DEFAULT_USER_AUTHENTICATION_CLASS', None) or BaseUserAuthentication
 
 async def instance_maker(action: Literal["create", "retrieve", "update", "delete"], request, model:Model, instance_id:int=0, request_body:dict={}):
     if action=="create":
@@ -284,7 +284,7 @@ class crud_handler:
             
         instance = await model.objects.filter(id=i_id).afirst()
         if not instance:
-            return Response({"message": f"instance with pk={id} not found"}, status=400)
+            return Response({"message": f"instance with pk={i_id} not found"}, status=400)
         
         request_body = await process_request_body(self.request_body)
         if not len(request_body)==1 or not len(next(iter(request_body.values())))==1:
