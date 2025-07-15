@@ -1,4 +1,3 @@
-# from __future__ import annotations
 import os
 import uuid
 from django.db.models import Model
@@ -14,7 +13,7 @@ class BaseStorage():
     # "source_dir/{file_prefix='app_label/model_name/instance_id/field_name'}/filename.extension"
     """
 
-    async def dir_maker(instance:Model, files_param):
+    async def dir_maker(self, instance:Model, files_param):
         """
         Create and return the directory path for storing files related to the model instance.
         Used internally by the storage class.

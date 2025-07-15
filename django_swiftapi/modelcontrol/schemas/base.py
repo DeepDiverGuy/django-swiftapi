@@ -4,7 +4,7 @@ from pydantic.fields import FieldInfo
 from django.db import models
 from django.db.models import Model, ForeignKey, OneToOneField, ManyToManyField, Q
 from django.core.exceptions import ImproperlyConfigured
-from ninja import Schema, ModelSchema, FilterSchema, filter_schema
+from ninja import Schema, FilterSchema, filter_schema
 from ninja.orm import create_schema
 from ninja.files import UploadedFile
 

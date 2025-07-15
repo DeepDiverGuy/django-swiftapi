@@ -1,16 +1,11 @@
-# from __future__ import annotations
 from typing import Any, List, Literal, Dict, Union, Callable, Coroutine
 from pydantic import BaseModel, Field
 from asgiref.sync import sync_to_async
-# from django.db.models import Model
 from django.forms.models import model_to_dict
 from django.http import StreamingHttpResponse
-# from django.conf import settings
 from ninja.responses import Response
 from ninja.files import UploadedFile
 from django_swiftapi.crud_operation.file_operations.files_validators import file_validator
-# from django_swiftapi.crud_operation.file_operations.storage_operations.base import BaseStorage
-# from django_swiftapi.crud_operation.file_operations.storage_operations.utils.aws_s3 import aws_s3_handler
 from django_swiftapi.exceptions import SendErrorResponse
 
 
