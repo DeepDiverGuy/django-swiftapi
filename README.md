@@ -402,6 +402,7 @@ validator_funcs={
 
 However, if you want to create support for new platforms, you can do it just by inheriting the `BaseStorage` class and defining these methods below:
 ```python
+from django.db.models import Model
 from django_swiftapi.crud_operation.file_operations.storage_operations.base import BaseStorage
 
 class custom_storage_class(BaseStorage):
