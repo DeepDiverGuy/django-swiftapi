@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='django_swiftapi',
-    version='0.1.8',
+    version='0.1.9',
     description='Easy to use django package for building APIs quicker than ever, built on top of django-ninja-extra',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
@@ -16,7 +16,6 @@ setup(
         'ninja-schema',
         'django-ninja-extra',
         'django-allauth',
-        'phonenumbers',
         'boto3',
         'asgiref',
         'Pillow',

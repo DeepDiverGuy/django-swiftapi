@@ -50,7 +50,7 @@ INSTALLED_APPS = [
 ---
 
 ## Usage
-TODO
+(TODO)
 
 ---
 
@@ -68,7 +68,7 @@ TODO
 - Ownership-based object access control
 - Field-level validation before save/update
 - Built-in file handling for `ArrayField`-based file storage
-- Easy integration with both local and S3-based file systems
+- Built-in integration with both local and S3-based file systems
 
 
 ### Full Model Example Using `SwiftBaseModel`
@@ -337,7 +337,7 @@ urlpatterns = [
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 ```
-That's it! Thanks to [ninja](https://django-ninja.dev/) & [ninja-extra](https://eadwincode.github.io/django-ninja-extra/), now you can see the auto-generated documentation in http://127.0.0.1:8000/api/docs. 
+That's it! Thanks to [ninja](https://django-ninja.dev/) & [ninja-extra](https://eadwincode.github.io/django-ninja-extra/), now you can see the auto-generated documentation at http://127.0.0.1:8000/api/docs. 
 
 ---
 
@@ -346,7 +346,7 @@ Easier than ever!
 
 ### File Configuration
 
-Configure file-handling from inside your [model's file configuaration](#file-handling-example), specify a few attributes in setings.py and that's it! No extra work, no nothing. All CRUD functionalities (uploads, downloads, deletiions etc) including authentications, permissions, individual-accesses are handled automatically by `django-swiftapi`.
+Configure file-handling from inside your [model's file configuration](#file-handling-example), specify a few attributes in setings.py and that's it! No extra work, no nothing. All CRUD functionalities (uploads, downloads, deletions etc) including authentications, permissions, individual-accesses are handled automatically by `django-swiftapi`.
 
 In settings.py, just specify according to your needs. `django-swiftapi` will use these directories to write or remove files:
 ```
@@ -378,7 +378,7 @@ The system automatically provides these file operations:
 ### File Access Control
 
 - **Public files**: Accessible without authentication
-- **Private files**: Require authentication and ownership verification
+- **Private files**: Require authentication and if specified, ownership verification
 
 ### Using Your Own Validation
 It's super easy. Just define a function (`django-swiftapi` supports both sync & async) and put it into the dictionary variable `validator_funcs` like this:
@@ -475,6 +475,8 @@ class custom_storage_class(BaseStorage):
 ### Using Built-in Authentication Classes
 
 ```python
+from ninja_extra import api_controller
+from django_swiftapi.modelcontrol.modelcontrollers.base import SwiftBaseModelController
 from django_swiftapi.modelcontrol.authenticators.django_allauth import djangoallauth_userauthentication
 
 # Using allauth authentication
@@ -487,6 +489,8 @@ class MyController(SwiftBaseModelController):
 
 ```python
 from ninja_extra import api_controller, permissions
+from django_swiftapi.modelcontrol.modelcontrollers.base import SwiftBaseModelController
+from django_swiftapi.modelcontrol.authenticators.django_allauth import djangoallauth_userauthentication
 
 @api_controller("/api", permissions=[djangoallauth_userauthentication()])
 class MyController(SwiftBaseModelController):
@@ -495,7 +499,7 @@ class MyController(SwiftBaseModelController):
     create_custom_permissions_list = [permissions.AllowAny]
 ```
 
-As simple as that! You can enable this functionality for others too or you can incorporate your own authentication classes for each operation, using:
+As simple as that! You can enable this functionality for others too or you can incorporate your own customized authentication classes for each operation, using:
 ```python
 retrieve_one_custom_permissions_list: list = []
 filter_custom_permissions_list: list = []
@@ -505,9 +509,9 @@ files_remove_custom_permissions_list: list = []
 delete_custom_permissions_list: list = []
 ```
 
-### Enable object-level permissions
+### Enabling Object-Level Permissions
 
-If you wish to give specific object permissions like only the creator of that object can `rerieve`, `filter`, `update`, `remove` or `delete` that object, you can do so like this:
+If you wish to give object-specific permissions like only the creator of that object can `rerieve`, `filter`, `update`, `remove` or `delete` that object, you can do so like this:
 ```python
 retrieve_one_obj_permission_check = True
 filter_obj_permission_check = True
@@ -520,6 +524,8 @@ delete_obj_permission_check = True
 Example:
 
 ```python
+from django_swiftapi.modelcontrol.modelcontrollers.base import SwiftBaseModelController
+
 class DocumentController(SwiftBaseModelController):
     retrieve_one_obj_permission_check = True  # Only owner can retrieve
     update_obj_permission_check = True        # Only owner can update
