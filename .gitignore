@@ -1,5 +1,4 @@
 __pycache__/
 *.py[cod]
 dist
-setup.py
 django_swiftapi.egg-info
