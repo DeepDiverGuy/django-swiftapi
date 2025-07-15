@@ -1,8 +1,8 @@
-# Django SwiftAPI Documentation [Still Under Development]
+# Django SwiftAPI Documentation [Under Development]
 
 ## Overview
 
-**Django SwiftAPI** provides a powerful yet simple abstraction for automatically generating CRUD APIs, automatic schema generation and robust file handling — currently supporting both local storage and Amazon S3, built on top of [django-ninja-extra](https://eadwincode.github.io/django-ninja-extra/). The core of this system is the use of:
+**Django SwiftAPI**, a fully async API framework, provides a powerful yet simple abstraction for automatically generating CRUD APIs, schema generation and robust file handling, built on top of [django-ninja-extra](https://eadwincode.github.io/django-ninja-extra/). The core of this system is the use of:
 
 - `SwiftBaseModel`: A base model with built-in support for controlling request & responses, CRUD specifications, file fields, ownership, schema customization, object validations etc all out-of-the-box.
 - `SwiftBaseModelController`: A customizable controller that automates schema generations & CRUD operations. All you need to do is plug-in your `SwiftBaseModel` & it handles everything in the background. 
@@ -15,6 +15,7 @@ This documentation explains how to use these components, configure your project,
 
 - [Installation](#installation)
 - [Database Recommendation](#database-recommendation)
+- [Usage](#usage)
 - [Model Definition](#model-definition)
 - [Model-Controller Setup](#model-controller-setup)
 - [URL Configuration](#url-configuration)
@@ -25,11 +26,12 @@ This documentation explains how to use these components, configure your project,
 
 ## Installation
 
-Before you start working, you need some familiarity on django, django-ninja & django-ninja-extra with it's modelcontrolling capabilities. 
+**Prerequisites**: Before you start working, you need some familiarity on django, django-ninja & django-ninja-extra with it's modelcontrolling capabilities. 
 
 Install it using:
-
-`pip install django_swiftapi`
+```bash
+pip install django_swiftapi
+```
 
 Then, add these in your INSTALLED_APPS:
 ```
@@ -43,80 +45,169 @@ INSTALLED_APPS = [
 
 ## Database Recommendation
 
-- `django_swiftapi` heavily relies on the `ArrayField` for managing file-fields. So you need to use a database that supports ArrayField. Normally PostgreSQL is a good fit.
+- `django_swiftapi` heavily relies on the `ArrayField` for managing file-fields. So you need to use a database that supports ArrayField. Normally, PostgreSQL is a good fit.
 
 ---
 
+## Usage
+TODO
+
+---
+
+
 ## Model Definition
 
-Inherit all your models from `SwiftBaseModel` to enable automatic shema generations, CRUD and file handling. Request & response schemas are also auto-generated based on specifications of this model.
+### SwiftBaseModel
 
-Example:
+`SwiftBaseModel` is an abstract Django model that provides powerful hooks and configurations for automated CRUD operations, user ownership enforcement, and file upload handling when used with the `crud_handler` and `SwiftBaseModelController` from `django-swiftapi`.
+
+
+### Key Features
+
+- Auto-included `created`, `updated`, and `created_by` fields
+- Ownership-based object access control
+- Field-level validation before save/update
+- Built-in file handling for `ArrayField`-based file storage
+- Easy integration with both local and S3-based file systems
+
+
+### Full Model Example Using `SwiftBaseModel`
 
 ```python
 from django.db import models
-from django_swiftapi.modelcontrol.base_models import SwiftBaseModel
-from django_swiftapi.crud_operation.files_handlers import Files_Param
+from django.contrib.postgres.fields import ArrayField
+from django_swiftapi.modelcontrol.models import SwiftBaseModel
+from django_swiftapi.crud_operation.file_operations.storage_operations import local_storage
+from django_swiftapi.crud_operation.file_operations.files_handlers import Files_Param
+from django_swiftapi.crud_operation.file_operations.files_validators import validate_images, validate_file_sizes
 
-class MyDocument(SwiftBaseModel):
-    # You can use any django-specified fields here
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    
-    # If you're storing files:
-    # Example file field (ArrayField)
-    file_field = ArrayField(models.CharField(max_length=200), default=list, size=5, blank=True, null=True)
-    
-    ## Required configuration for file handling
-    files_fields = ['file_field', ]  # Put all your file-fields names here
+class Product(SwiftBaseModel):
+    name = models.CharField(max_length=100)
+    images = ArrayField(models.CharField(max_length=200), default=list, blank=True, null=True)
+
+    files_fields = ["images"]
     files_params_list = [
-        # For each file-fields, specify configurations here
-        Files_Param(
-            field_name="file_field",
-            access="public",  # or "private"
-            storage="local",  # or "amazons3"
-            file_size_limit=10,  # MB
-            validate_images=True,
-        ),
+        FilesParam(
+            field_name="images",
+            access="public",
+            storage=local_storage,
+            validator_funcs={
+                file_sizes_valid: {"limit": 5},
+                images_valid: {},
+            }
+        )
     ]
-    
-    # Customize field requirements
-    required_to_create = ['title']
-    required_to_update = []
-    
-    # Exclude fields from requests/responses
-    exclude_in_request = ['id', 'created', 'updated', 'created_by']  # If you override this list, make sure add these mentioned here. It will prevent showing them in the request-schema.
-    exclude_in_response = []
-    
-    # Optional: Ownership checking
-    obj_owner_check_before_save = True
-    obj_fields_to_check_owner = []
 ```
 
-### Model Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `exclude_in_request` | list[str] | `['id', 'created', 'updated', 'created_by']` | Specified fields here are excluded from request schemas |
-| `exclude_in_response` | list[str] | `[]` | Specified fields here are excluded from response schemas |
-| `required_to_create` | list[str] | `[]` | Specified fields here are treated as 'required' while creating an object of this model |
-| `required_to_update` | list[str] | `[]` | Specified fields here are treated as 'required' while updating an object of this model|
-| `files_fields` | list[str] | `[]` | List of file field names, these fields will be considered as file-fields by django_swiftapi|
-| `files_params_list` | list[Files_Param] | `[]` | File configuration parameters for each file-field, this is required|
-| `obj_owner_check_before_save` | bool | `False` | Enable ownership validation before save. enabling will tell django_swiftapi to check if the requesting user is the user that created this object |
-| `obj_fields_to_check_owner` | list[str] | `[]` | A list of fields that link to other objects. Django SwiftAPI will use them to check if the user making the request created those related objects. |
-| `created_by_field` | str | `'created_by'` | Field name for ownership tracking. you can modify it but default is recommended |
+### Model Fields
+
+| Field              | Type                 | Description                                                   |
+|-------------------|----------------------|---------------------------------------------------------------|
+| `created`          | `DateTimeField`      | Auto timestamp when instance is created                       |
+| `updated`          | `DateTimeField`      | Auto timestamp on every update                                |
+| `created_by`       | `ForeignKey(User)`   | Automatically assigned user who created the object            |
+| `created_by_field` | `str` (default: `'created_by'`) | Custom field to use for ownership checking      |
+
+
+### Configuration Attributes
+
+These are **class-level attributes**, not DB fields.
+
+| Attribute                     | Type         | Description                                                                 |
+|-------------------------------|--------------|-----------------------------------------------------------------------------|
+| `required_to_create`          | `list[str]`  | List of field names required during object creation                         |
+| `required_to_update`          | `list[str]`  | List of field names required during update                                  |
+| `exclude_in_request`          | `list[str]`  | Fields to exclude while generating request schemas                          |
+| `exclude_in_response`         | `list[str]`  | Fields to exclude from response schemas                                     |
+| `obj_owner_check_before_save` | `bool`       | If `True`, ownership will be verified before saving                         |
+| `files_fields`                | `list[str]`  | Names of file fields (typically `ArrayField`s)                              |
+| `files_params_list`           | `list[FilesParam]` | Full configuration for file handling per field                        |
+
+
+### File Handling Example
+
+To manage file uploads, downloads, deletion etc (via `ArrayField`), follow this approach:
+
+```python
+from django.contrib.postgres.fields import ArrayField
+from django_swiftapi.crud_operation.file_operations.storage_operations import local_storage
+from django_swiftapi.crud_operation.file_operations.files_handlers import Files_Param
+from django_swiftapi.crud_operation.file_operations.files_validators import validate_images, validate_file_sizes
+
+# Define file field in your model:
+images = ArrayField(
+    models.CharField(max_length=200), 
+    default=list, 
+    size=5, 
+    blank=True, 
+    null=True
+)
+
+# Register it as a file field:
+files_fields = ["images"]
+
+# Provide full configuration for how files should be handled:
+files_params_list = [
+    FilesParam(
+        field_name="images",
+        access="public",
+        storage=local_storage,
+        validator_funcs={
+            file_sizes_valid: {"limit": 10},  # limit in MB
+            images_valid: {}
+        }
+    ),
+]
+```
+
+
+### Ownership Enforcement
+
+By default, `created_by` is used to check whether the requesting user has access to modify or delete the object.
+
+To enable this behavior, set:
+
+```python
+obj_owner_check_before_save = True
+```
+
+If you use a different field for ownership, specify it with:
+
+```python
+created_by_field = "your_owner_field_name"
+```
+
+
+### Summary of Key Attributes
+
+| Attribute               | Type           | Description |
+|-------------------------|----------------|-------------|
+| `required_to_create`    | `list[str]`    | Fields required when creating an object (only applies during `crud_handler` operations) |
+| `required_to_update`    | `list[str]`    | Fields required when updating an object (only applies during `crud_handler` operations) |
+| `exclude_in_request`    | `list[str]`    | Fields to exclude from request schema generation |
+| `exclude_in_response`   | `list[str]`    | Fields to exclude from response schema generation |
+| `files_fields`          | `list[str]`    | List of fields representing file arrays (usually Django `ArrayField`) |
+| `files_params_list`     | `list[FilesParam]` | List of `FilesParam` configurations for each file field |
+| `obj_owner_check_before_save` | `bool`  | Whether to enforce ownership validation before saving an object |
+| `created_by_field`      | `str`          | Name of the field used for ownership validation (default `"created_by"`) |
+
+
+This documentation outlines how to utilize the `SwiftBaseModel` to build models that seamlessly integrate with the CRUD operations and file handling mechanisms provided by django-swiftapi.
+
+For more details on file validations and storage options, refer to the respective modules.
+
 ---
 
 ## Model-Controller Setup
 
 Create modelcontrollers by inheriting from `SwiftBaseModelController`:
 
-All Configurations:
+### Full Configurations Example:
 
 ```python
-from ninja_extra import api_controller, permissions
-from django_swiftapi.modelcontrol.base_modelcontrollers import SwiftBaseModelController
+from ninja_extra import api_controller
+from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
 from .models import MyDocument
 
 @api_controller("/documents",)
@@ -130,7 +221,6 @@ class DocumentController(SwiftBaseModelController):
     create_request_schemas: list[tuple[str, str, Schema, bool]] = None
     create_response_schemas: dict[int, Schema] = None
     create_custom_permissions_list: list = []
-    create_premium_check: bool = False
 
     retrieve_one_enabled: bool = False
     retrieve_one_path: str = 'retrieveone/{id}'
@@ -139,7 +229,6 @@ class DocumentController(SwiftBaseModelController):
     retrieve_one_response_schemas: dict[int, Schema] = None
     retrieve_one_custom_permissions_list: list = []
     retrieve_one_obj_permission_check: bool = False
-    retrieve_one_premium_check: bool = False
 
     filter_enabled: bool = False
     filter_path: str = 'filter'
@@ -149,7 +238,6 @@ class DocumentController(SwiftBaseModelController):
     filter_response_schemas: dict[int, Schema] = None
     filter_custom_permissions_list: list = []
     filter_obj_permission_check: bool = False
-    filter_premium_check: bool = False
 
     update_enabled: bool = False
     update_path: str = '{id}/update'
@@ -158,7 +246,6 @@ class DocumentController(SwiftBaseModelController):
     update_response_schemas: dict[int, Schema] = None
     update_custom_permissions_list: list = []
     update_obj_permission_check: bool = False
-    update_premium_check: bool = False
 
     file_retrieve_enabled: bool = False
     file_retrieve_path: str = '{id}/file/retrieve'
@@ -167,7 +254,6 @@ class DocumentController(SwiftBaseModelController):
     file_retrieve_response_schemas: dict[int, Schema] = None
     file_retrieve_custom_permissions_list: list = []
     file_retrieve_obj_permission_check: bool = False
-    file_retrieve_premium_check: bool = False
 
     files_remove_enabled: bool = False
     files_remove_path: str = '{id}/files/remove'
@@ -176,7 +262,6 @@ class DocumentController(SwiftBaseModelController):
     files_remove_response_schemas: dict[int, Schema] = None
     files_remove_custom_permissions_list: list = []
     files_remove_obj_permission_check: bool = False
-    files_remove_premium_check: bool = False
 
     delete_enabled: bool = False
     delete_path: str = '{id}/delete'
@@ -184,7 +269,6 @@ class DocumentController(SwiftBaseModelController):
     delete_response_schemas: dict[int, Schema] = None
     delete_custom_permissions_list: list = []
     delete_obj_permission_check: bool = False
-    delete_premium_check: bool = False
 ```
 
 ### Model-Controller Options
@@ -231,7 +315,9 @@ You can also customize their `info` and `schemas`. just set the variables proper
 
 ## URL Configuration
 
-Configure your URLs to include the API endpoints ([Reference](#https://eadwincode.github.io/django-ninja-extra/)):
+Configure your URLs to include the API endpoints ([Reference](https://www.eadwincode.github.io/django-ninja-extra)).
+
+Example:
 
 ```python
 # urls.py
@@ -251,44 +337,26 @@ urlpatterns = [
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 ```
-That's it!
+That's it! Thanks to [ninja](https://django-ninja.dev/) & [ninja-extra](https://eadwincode.github.io/django-ninja-extra/), now you can see the auto-generated documentation in http://127.0.0.1:8000/api/docs. 
 
 ---
 
 ## File Handling
+Easier than ever!
 
 ### File Configuration
 
-Configure file handling using `Files_Param`:
+Configure file-handling from inside your [model's file configuaration](#file-handling-example), specify a few attributes in setings.py and that's it! No extra work, no nothing. All CRUD functionalities (uploads, downloads, deletiions etc) including authentications, permissions, individual-accesses are handled automatically by `django-swiftapi`.
 
-```python
-from crud_operation.files_handlers import Files_Param
-
-files_params_list = [
-    Files_Param(
-        field_name="name_of_your_field",    # Field name in model
-        access="public",                    # "public" or "private"
-        storage="local",                    # "local" or "amazons3"
-        file_size_limit=10,                 # Size limit in MB
-        validate_images=True,               # Validate image files
-    ),
-    Files_Param(
-        field_name="name_of_your_field",
-        access="private",
-        storage="amazons3",
-        file_size_limit=20,
-        validate_images=False,
-    ),
-]
+In settings.py, just specify according to your needs. `django-swiftapi` will use these directories to write or remove files:
 ```
-Then in settings.py (use what you need):
-```
-# local
-PUBLIC_LOCAL_FILE_WRITE_LOCATION = "" # ex: 'dummy_site_files/public'
-PUBLIC_LOCAL_FILE_URL_PREFIX = "" # ex: '/media'
-PRIVATE_LOCAL_FILE_WRITE_LOCATION = "" # ex: 'dummy_site_files/private'
+# if you are using local storage
+PUBLIC_LOCAL_FILE_WRITE_LOCATION = "" # ensure this directory is public in your production server, ex: 'dummy_site_files/public'
+PUBLIC_LOCAL_FILE_URL_PREFIX = "/media" # this prefix will be used in the file links, ex: '/media'
+PRIVATE_LOCAL_FILE_WRITE_LOCATION = "" # ensure this directory is not publicly accessible in your production server, ex: 'dummy_site_files/private'
+MEDIA_ROOT = PUBLIC_LOCAL_FILE_WRITE_LOCATION
 
-# amazon s3
+# if you are using amazon s3
 PUBLIC_AMAZONS3_BUCKET_NAME = ""
 PUBLIC_AMAZONS3_FILE_WRITE_LOCATION = ""
 PUBLIC_AMAZONS3_FILE_URL_PREFIX = ""
@@ -296,8 +364,7 @@ PRIVATE_AMAZONS3_BUCKET_NAME = ""
 PRIVATE_AMAZONS3_FILE_WRITE_LOCATION = ""
 
 # Needed in both cases
-MEDIA_ROOT = PUBLIC_LOCAL_FILE_WRITE_LOCATION
-MEDIA_URL = '/media/'  # this value '/media/' is necessary for serving files during development
+MEDIA_URL = '/media/'  # the value '/media/' is necessary for serving files during development according to django-docs
 ```
 
 ### File Operations
@@ -307,12 +374,97 @@ The system automatically provides these file operations:
 - **Upload**: Files are uploaded during create/update operations
 - **Retrieve**: Download files via `/file/retrieve` endpoint
 - **Remove**: Delete specific files via `/files/remove` endpoint
-- **Storage**: Automatic handling of local and S3 storage
 
 ### File Access Control
 
 - **Public files**: Accessible without authentication
 - **Private files**: Require authentication and ownership verification
+
+### Using Your Own Validation
+It's super easy. Just define a function (`django-swiftapi` supports both sync & async) and put it into the dictionary variable `validator_funcs` like this:
+```python
+async def your_validator(arg_name=default):
+    # if it validates, then return None
+    # if it fails to validate, return a single string containing the error message
+    return "error occurred"
+
+validator_funcs={
+    file_sizes_valid: {"limit": 5},
+    images_valid: {},
+    your_validator: {"<arg_name>": <arg_value>}
+}
+```
+
+### Storage Support
+`django-swiftapi` currently supports:
+- local storage (`django_swiftapi.crud_operation.file_operations.storage_operations.local_storage`)
+- aws s3 storage (`django_swiftapi.crud_operation.file_operations.storage_operations.aws_s3_storage`)
+
+However, if you want to create support for new platforms, you can do it just by inheriting the `BaseStorage` class and defining these methods below:
+```python
+from django_swiftapi.crud_operation.file_operations.storage_operations.base import BaseStorage
+
+class custom_storage_class(BaseStorage):
+    async def dir_maker(instance:Model, files_param):
+        """
+        Create and return the directory path for storing files related to the model instance.
+        Used internally by the storage class.
+        """
+        pass
+
+    async def url_maker(self,  abs_path:str, files_param, source_dir:str=""):
+        """
+        Generate a URL (or file identifier for private) from the absolute file path.
+        Used internally by the storage class.
+        """
+        pass
+
+    async def _files_writer(self, instance:Model, files_param):
+        """
+        Write uploaded files to the specified filesystem.
+
+        Args:
+            instance (Model): Django model instance.
+            files_param (Files_Param): Contains uploaded file list, chunk size, access level, etc.
+
+        Returns:
+            Two lists:
+            - List of successfully written file URLs.
+            - List of failed file names.
+        """
+        pass
+
+    async def _files_remover(self, instance:Model, files_param, remove_dir=False):
+        """
+        Remove files or entire directory from the specified filesystem.
+
+        Args:
+            instance (Model): Django model instance.
+            files_param (Files_Param): Contains file_links to remove.
+            remove_dir (bool, optional): Whether to remove the whole directory.
+
+        Returns:
+            Two lists:
+            - List of successfully removed file links.
+            - List of failed file links.
+        """
+        pass
+
+    async def _files_retriever(self, instance:Model, files_param):
+        """
+        Yields chunks of file data from the specified path for streaming purposes.
+
+        Args:
+            instance (Model): Django model instance.
+            files_param (Files_Param): Contains file_links to retrieve.
+
+        Yields:
+            Two lists:
+            - List of dictionaries mapping file names to file streams for successfully retrieved files.
+            - List of failed file names.
+        """
+        pass
+```
 
 ---
 
@@ -322,23 +474,65 @@ The system automatically provides these file operations:
 ### Using Built-in Authentication Classes
 
 ```python
-from django_swiftapi.modelcontrol.authenticators import (
-    djangoallauth_UserAuthentication,
-    base_UserAuthentication
-)
+from django_swiftapi.modelcontrol.authenticators.django_allauth import djangoallauth_userauthentication
 
 # Using allauth authentication
-@api_controller("/api", permissions=[djangoallauth_UserAuthentication()])
+@api_controller("/api", permissions=[djangoallauth_userauthentication()])
 class MyController(SwiftBaseModelController):
     pass
+```
+
+**IMPORTANT NOTE**: Using `@api_controller("/api", permissions=[djangoallauth_userauthentication()])` will enable authentication for all the routes of the corresponding `modelcontroller`. If you wish to allow certain routes to pass without authentication, you can do it simply like this:
+
+```python
+from ninja_extra import api_controller, permissions
+
+@api_controller("/api", permissions=[djangoallauth_userauthentication()])
+class MyController(SwiftBaseModelController):
+
+    create_enabled= True
+    create_custom_permissions_list = [permissions.AllowAny]
+```
+
+As simple as that! You can enable this functionality for others too or you can incorporate your own authentication classes for each operation, using:
+```python
+retrieve_one_custom_permissions_list: list = []
+filter_custom_permissions_list: list = []
+update_custom_permissions_list: list = []
+file_retrieve_custom_permissions_list: list = []
+files_remove_custom_permissions_list: list = []
+delete_custom_permissions_list: list = []
+```
+
+### Enable object-level permissions
+
+If you wish to give specific object permissions like only the creator of that object can `rerieve`, `filter`, `update`, `remove` or `delete` that object, you can do so like this:
+```python
+retrieve_one_obj_permission_check = True
+filter_obj_permission_check = True
+update_obj_permission_check = True
+file_retrieve_obj_permission_check = True
+files_remove_obj_permission_check = True
+delete_obj_permission_check = True
+```
+
+Example:
+
+```python
+class DocumentController(SwiftBaseModelController):
+    retrieve_one_obj_permission_check = True  # Only owner can retrieve
+    update_obj_permission_check = True        # Only owner can update
+    delete_obj_permission_check = True        # Only owner can delete
 ```
 
 ### Customizing Authentication Class
 
 If you're using any other user authentication system, you need to define your own authentication class overriding just one function:
 ```
+from django_swiftapi.modelcontrol.authenticators.base import BaseUserAuthentication
+
 # Create custom authentication
-class CustomAuthentication(base_UserAuthentication):
+class CustomAuthentication(BaseUserAuthentication):
     def has_permission(self, request, view):
         # Your custom logic for verifying if the user is authenticated
         # return the user object if authenticated else None
@@ -355,17 +549,6 @@ class MyController(SwiftBaseModelController):
 1. **Controller Level**: Applied to all endpoints in the controller
 2. **Operation Level**: Specific permissions per CRUD operation
 3. **Object Level**: Ownership-based permissions
-
-### Ownership Checking
-
-Enable object-level permissions:
-
-```python
-class DocumentController(SwiftBaseModelController):
-    retrieve_one_obj_permission_check = True  # Only owner can retrieve
-    update_obj_permission_check = True        # Only owner can update
-    delete_obj_permission_check = True        # Only owner can delete
-```
 
 ---
 
@@ -386,7 +569,7 @@ POST /api/documents/filter
     "created__gte": "2024-01-01"
 }
 ```
-You can basically use everything provided by django-ninja & django-ninja-extra!
+You can basically use everything provided by [django-ninja](https://django-ninja.dev/guides/input/filtering/) & [django-ninja-extra](https://eadwincode.github.io/django-ninja-extra/tutorial/ordering/)!
 
 ---
 
