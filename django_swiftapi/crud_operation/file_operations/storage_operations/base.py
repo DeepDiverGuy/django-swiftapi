@@ -24,7 +24,7 @@ class BaseStorage():
     async def abs_path_maker(self, dir:str, filename:str="", filelink:str=""):
         """
         Create and return the absolute file path for storing files related to the model instance.
-        Used internally by the storage class.
+        Used internally by the storage class. No need to override this method.
         """
         if filelink:
             return f'{dir}/{filelink.split("/")[-1]}'
