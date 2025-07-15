@@ -1,4 +1,4 @@
-# Django SwiftAPI Documentation [Documentation Still Under Development]
+# Django SwiftAPI Documentation [Still Under Development]
 
 ## Overview
 
