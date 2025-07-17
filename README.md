@@ -47,7 +47,7 @@ INSTALLED_APPS = [
 
 ---
 
-# Usage Guide for Django SwiftAPI
+## Usage Guide for Django SwiftAPI
 
 Welcome to the **Django-SwiftAPI** usage tutorial. This guide will walk you through setting up a fully functional async API server with minimal effort — from starting your project to building secure, filterable, paginated API endpoints backed by user authentication.
 
@@ -55,22 +55,22 @@ Welcome to the **Django-SwiftAPI** usage tutorial. This guide will walk you thro
 
 ---
 
-## Project Setup
+### Project Setup
 
-### Create and activate a virtual environment
+#### Create and activate a virtual environment
 
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: source venv/Scripts/activate
 ```
 
-### Install django-swiftapi
+#### Install django-swiftapi
 
 ```bash
 pip install django-swiftapi
 ```
 
-### Start your project and an app like a regular django project
+#### Start your project and an app like a regular django project
 
 ```bash
 django-admin startproject myproject
@@ -78,7 +78,7 @@ cd myproject
 python manage.py startapp api
 ```
 
-### Add required apps in `settings.py`
+#### Add required apps in `settings.py`
 
 ```python
 INSTALLED_APPS = [
@@ -91,9 +91,9 @@ INSTALLED_APPS = [
 
 ---
 
-## Create Your Models
+### Create Your Models
 
-### Extend `SwiftBaseModel` instead of `models.Model`
+#### Extend `SwiftBaseModel` instead of `models.Model`
 
 ```python
 # api/models.py
@@ -115,11 +115,11 @@ python manage.py migrate
 
 ---
 
-## Set up a Model-Controller
+### Set up a Model-Controller
 
 > Full functional CRUD APIs with automatic files-handling support
 
-### Create `api/modelcontrollers.py`
+#### Create `api/modelcontrollers.py`
 
 ```python
 # api/modelcontrollers.py
@@ -140,7 +140,7 @@ class ProductController(SwiftBaseModelController):
 
 ---
 
-### Connect the model-controller to your project's root `urls.py`
+#### Connect the model-controller to your project's root `urls.py`
 
 ```python
 from django.contrib import admin
@@ -173,7 +173,7 @@ Now, go to `http://127.0.0.1:8000/api/docs` to find all the routes with request-
 
 ---
 
-## Auto-Generated Documentation
+### Auto-Generated Documentation
 
 Thanks to ninja & ninja-extra, your project's full api documentation is accessible at `/api/docs`.
 
@@ -181,11 +181,9 @@ Example url: `http://127.0.0.1:8000/api/docs`
 
 ---
 
-## Filtering and Search (Out of the Box!)
+### Filtering and Search (Out of the Box!)
 
-You don't need to implement anything. Django SwiftAPI automatically enables all filtering and searching functionalities in the `/filter` route using Django Ninja’s features.
-
-### Filtering and Searching
+You don't need to implement anything. Django-SwiftAPI automatically enables all filtering functionalities in the `/filter` route using Django Ninja’s features.
 
 Try accessing:
 ```
@@ -205,11 +203,11 @@ This will return all the results containing matches either the "name" or the "pr
 
 ---
 
-## Pagination
+### Pagination
 
 When you use any `/filter` endpoint in Django-SwiftAPI, results are paginated by default. All the following functionalities are provided by [django-ninja](https://django-ninja.dev/guides/response/pagination/)
 
-### Default Behavior
+#### Default Behavior
 
 By default, 100 items per page are returned in each response. This is controlled by Django Ninja’s default setting.
 
@@ -221,14 +219,14 @@ NINJA_PAGINATION_PER_PAGE = 50  # or any number you prefer
 
 Now, every paginated endpoint will return 50 items per page unless manually overridden.
 
-### Customize Per Request
+#### Customize Per Request
 
 If you want to control pagination manually for any request, you can add query parameters:
 
 - `/api/product/?limit=10&offset=0`
 - `/api/product/?page=2`
 
-#### What do these mean?
+##### What do these mean?
 
 | Parameter | Description |
 |----------|-------------|
@@ -238,7 +236,7 @@ If you want to control pagination manually for any request, you can add query pa
 
 You can use either `limit` + `offset` **or** just `page` — whichever feels easier.
 
-### Example
+#### Example
 
 ```http
 POST /api/product/?limit=5&offset=10
@@ -254,7 +252,7 @@ Assuming default page size is 100, this will return items from 201 to 300.
 
 ---
 
-## Authentication
+### Authentication
 
 If you're using [django-allauth](https://docs.allauth.org/en/latest/), `django_swiftapi` has a built-in authentication class for it. You can use it directly in your modelcontrollers:
 ```python
@@ -285,13 +283,13 @@ class ProductController(SwiftBaseModelController):
 Now, the `/create` route can be accessed by anyone. If you wanna use a custom authentication class, follow this [guideline](https://github.com/DeepDiverGuy/django-swiftapi?tab=readme-ov-file#authentication--permissions).
 
 ---
-## Extending API Routes
+### Extending API Routes
 
 If the built-in functionalities don't meet your needs and you want your own routes & custom functionalities, simply define a method inside the model-controller class and put your own logics. Follow the official documentation from [django-ninja-extra](https://eadwincode.github.io/django-ninja-extra/api_controller/api_controller_route/).
 
 ---
 
-## Admin Panel
+### Admin Panel
 
 One of the best features of [Django](https://www.djangoproject.com/) is that it provides a robust and customizable Admin Panel. You can register the models in `admin.py` as usual:
 ```python
@@ -310,7 +308,7 @@ The admin panel is accessible at `http://127.0.0.1:8000/admin/`
 
 ---
 
-## Final Words
+### Final Words
 
 Django-SwiftAPI removes boilerplate and makes you productive in minutes. Compared to Django Ninja or FastAPI, you write:
 - ✅ No manual schema or serializers
