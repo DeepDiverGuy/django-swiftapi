@@ -205,7 +205,7 @@ This will return all the results containing exact-matches with either the "name"
 
 ### Pagination
 
-When you use any `/filter` endpoint in Django-SwiftAPI, results are paginated by default. All the following functionalities are provided by [django-ninja](https://django-ninja.dev/guides/response/pagination/)
+When you use any `/filter` endpoint in Django-SwiftAPI, results are paginated by default. The following functionality is provided by [django-ninja](https://django-ninja.dev/guides/response/pagination/)
 
 #### Default Behavior
 
