@@ -15,7 +15,7 @@ This documentation explains how to use these components, configure your project,
 
 - [Installation](#installation)
 - [Database Recommendation](#database-recommendation)
-- [Usage](#usage)
+- [Usage](#usage-guide-for-django-swiftapi)
 - [Model Definition](#model-definition)
 - [Model-Controller Setup](#model-controller-setup)
 - [URL Configuration](#url-configuration)
