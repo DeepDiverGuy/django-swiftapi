@@ -613,7 +613,43 @@ That's it! Thanks to [ninja](https://django-ninja.dev/) & [ninja-extra](https://
 ## File Handling
 Easier than ever!
 
-### File Configuration
+### Example
+
+To manage file uploads, downloads, deletion etc (via `ArrayField`), follow this approach:
+
+```python
+from django.contrib.postgres.fields import ArrayField
+from django_swiftapi.crud_operation.file_operations.storage_operations import local_storage
+from django_swiftapi.crud_operation.file_operations.files_handlers import Files_Param
+from django_swiftapi.crud_operation.file_operations.files_validators import validate_images, validate_file_sizes
+
+# Define file field in your model:
+images = ArrayField(
+    models.CharField(max_length=200), 
+    default=list, 
+    size=5, 
+    blank=True, 
+    null=True
+)
+
+# Register it as a file field:
+files_fields = ["images"]
+
+# Provide full configuration for how files should be handled:
+files_params_list = [
+    FilesParam(
+        field_name="images",
+        access="public",
+        storage=local_storage,
+        validator_funcs={
+            file_sizes_valid: {"limit": 10},  # limit in MB
+            images_valid: {}
+        }
+    ),
+]
+```
+
+### Configuration
 
 Configure file-handling from inside your [model's file configuration](#file-handling-example), specify a few attributes in setings.py and that's it! No extra work, no nothing. All CRUD functionalities (uploads, downloads, deletions etc) including authentications, permissions, individual-accesses are handled automatically by `django-swiftapi`.
 
@@ -659,11 +695,13 @@ The system automatically provides these file operations:
 ### Using Your Own Validation
 It's super easy. Just define a function (`django-swiftapi` supports both sync & async) and put it into the dictionary variable `validator_funcs` like this:
 ```python
+# Define your validation function
 async def your_validator(arg_name=default):
     # if it validates, then return None
     # if it fails to validate, return a single string containing the error message
     return "error occurred"
 
+# Then, use it inside `FilesParam`
 validator_funcs={
     file_sizes_valid: {"limit": 5},
     images_valid: {},
