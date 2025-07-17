@@ -255,6 +255,8 @@ Assuming default page size is 100, this will return items from 201 to 300.
 ### Authentication
 
 If you're using [django-allauth](https://docs.allauth.org/en/latest/), `django_swiftapi` has a built-in authentication class for it. You can use it directly in your modelcontrollers:
+[Install](https://docs.allauth.org/en/dev/installation/quickstart.html) it if you haven't already. Then use like this:
+
 ```python
 from ninja_extra import api_controller
 from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
@@ -786,7 +788,7 @@ class custom_storage_class(BaseStorage):
 ## Authentication & Permissions
 `django_swiftapi` is highly compatible with [django-allauth](#https://docs.allauth.org/en/latest/). So, if you're using django-allauth, you can validate authentications directly in your modelcontrollers.
 
-### Using Built-in Authentication Classes
+### Using `django-allauth` Authentication Class
 
 ```python
 from ninja_extra import api_controller
