@@ -347,9 +347,9 @@ Easier than ever!
 
 Configure file-handling from inside your [model's file configuration](#file-handling-example), specify a few attributes in setings.py and that's it! No extra work, no nothing. All CRUD functionalities (uploads, downloads, deletions etc) including authentications, permissions, individual-accesses are handled automatically by `django-swiftapi`.
 
-In settings.py, just specify according to your needs. `django-swiftapi` will use these directories to write or remove files:
-
 #### For local storage
+In your settings.py:
+
 ```
 PUBLIC_LOCAL_FILE_WRITE_LOCATION = "" # ensure this directory is public in your production server, ex: 'dummy_site_files/public'
 PUBLIC_LOCAL_FILE_URL_PREFIX = "/media" # this prefix will be used in the file links, ex: '/media'
@@ -359,6 +359,10 @@ MEDIA_URL = '/media/'  # the value '/media/' is necessary for serving files duri
 ```
 
 #### For AWS S3
+First, you need to install boto3 and set some configurations following AWS's official [docs](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html#installation)
+
+Then in your settings.py, set these attributes:
+
 ```
 PUBLIC_AMAZONS3_BUCKET_NAME = ""
 PUBLIC_AMAZONS3_FILE_WRITE_LOCATION = ""
@@ -367,12 +371,13 @@ PRIVATE_AMAZONS3_BUCKET_NAME = ""
 PRIVATE_AMAZONS3_FILE_WRITE_LOCATION = ""
 MEDIA_URL = '/media/'  # the value '/media/' is necessary for serving files during development according to django-docs
 ```
+Done!
 
 ### File Operations
 
 The system automatically provides these file operations:
 
-- **Upload**: Files are uploaded during create/update operations
+- **Upload**: Files are uploaded during `create` or `update` operations
 - **Retrieve**: Download files via `/file/retrieve` endpoint
 - **Remove**: Delete specific files via `/files/remove` endpoint
 
