@@ -26,11 +26,9 @@ This documentation explains how to use these components, configure your project,
 
 ## Installation
 
-**Prerequisites**: Before you start working, you need some familiarity on django, django-ninja & django-ninja-extra with it's modelcontrolling capabilities. 
-
 Install it using:
 ```bash
-pip install django_swiftapi
+pip install django-swiftapi
 ```
 
 Then, add these in your INSTALLED_APPS:
@@ -45,7 +43,7 @@ INSTALLED_APPS = [
 
 ## Database Recommendation
 
-- `django_swiftapi` heavily relies on the `ArrayField` for managing file-fields. So you need to use a database that supports ArrayField. Normally, PostgreSQL is a good fit.
+- `django-swiftapi` heavily relies on the `ArrayField` for managing file-fields. So you need to use a database that supports ArrayField. Normally, PostgreSQL is a good fit.
 
 ---
 
@@ -215,6 +213,7 @@ class DocumentController(SwiftBaseModelController):
 
     model_to_control = MyDocument
 
+    # These are default values
     create_enabled: bool = False
     create_path: str = 'create'
     create_info: str = 'create an item'
@@ -349,21 +348,23 @@ Easier than ever!
 Configure file-handling from inside your [model's file configuration](#file-handling-example), specify a few attributes in setings.py and that's it! No extra work, no nothing. All CRUD functionalities (uploads, downloads, deletions etc) including authentications, permissions, individual-accesses are handled automatically by `django-swiftapi`.
 
 In settings.py, just specify according to your needs. `django-swiftapi` will use these directories to write or remove files:
+
+#### For local storage
 ```
-# if you are using local storage
 PUBLIC_LOCAL_FILE_WRITE_LOCATION = "" # ensure this directory is public in your production server, ex: 'dummy_site_files/public'
 PUBLIC_LOCAL_FILE_URL_PREFIX = "/media" # this prefix will be used in the file links, ex: '/media'
 PRIVATE_LOCAL_FILE_WRITE_LOCATION = "" # ensure this directory is not publicly accessible in your production server, ex: 'dummy_site_files/private'
 MEDIA_ROOT = PUBLIC_LOCAL_FILE_WRITE_LOCATION
+MEDIA_URL = '/media/'  # the value '/media/' is necessary for serving files during development according to django-docs
+```
 
-# if you are using amazon s3
+#### For AWS S3
+```
 PUBLIC_AMAZONS3_BUCKET_NAME = ""
 PUBLIC_AMAZONS3_FILE_WRITE_LOCATION = ""
 PUBLIC_AMAZONS3_FILE_URL_PREFIX = ""
 PRIVATE_AMAZONS3_BUCKET_NAME = ""
 PRIVATE_AMAZONS3_FILE_WRITE_LOCATION = ""
-
-# Needed in both cases
 MEDIA_URL = '/media/'  # the value '/media/' is necessary for serving files during development according to django-docs
 ```
 
@@ -403,7 +404,7 @@ validator_funcs={
 However, if you want to create support for new platforms, you can do it just by inheriting the `BaseStorage` class and defining these methods below:
 ```python
 from django.db.models import Model
-from django_swiftapi.crud_operation.file_operations.storage_operations.base import BaseStorage
+from django_swiftapi.crud_operation.file_operations.storage_operations import BaseStorage
 
 class custom_storage_class(BaseStorage):
     async def dir_maker(instance:Model, files_param):
@@ -489,7 +490,7 @@ class MyController(SwiftBaseModelController):
 
 ```python
 from ninja_extra import api_controller, permissions
-from django_swiftapi.modelcontrol.modelcontrollers.base import SwiftBaseModelController
+from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
 from django_swiftapi.modelcontrol.authenticators.django_allauth import djangoallauth_userauthentication
 
 @api_controller("/api", permissions=[djangoallauth_userauthentication()])
@@ -499,7 +500,7 @@ class MyController(SwiftBaseModelController):
     create_custom_permissions_list = [permissions.AllowAny]
 ```
 
-As simple as that! You can enable this functionality for others too or you can incorporate your own customized authentication classes for each operation, using:
+As simple as that! You can enable this functionality for other routes too or incorporate your own customized authentication classes for each operation, using:
 ```python
 retrieve_one_custom_permissions_list: list = []
 filter_custom_permissions_list: list = []
@@ -524,7 +525,7 @@ delete_obj_permission_check = True
 Example:
 
 ```python
-from django_swiftapi.modelcontrol.modelcontrollers.base import SwiftBaseModelController
+from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
 
 class DocumentController(SwiftBaseModelController):
     retrieve_one_obj_permission_check = True  # Only owner can retrieve
@@ -536,7 +537,7 @@ class DocumentController(SwiftBaseModelController):
 
 If you're using any other user authentication system, you need to define your own authentication class overriding just one function:
 ```
-from django_swiftapi.modelcontrol.authenticators.base import BaseUserAuthentication
+from django_swiftapi.modelcontrol.authenticators import BaseUserAuthentication
 
 # Create custom authentication
 class CustomAuthentication(BaseUserAuthentication):
@@ -558,26 +559,4 @@ class MyController(SwiftBaseModelController):
 3. **Object Level**: Ownership-based permissions
 
 ---
-
-### Filtering and Search
-
-The filter endpoint supports:
-
-- Field-based filtering
-- Search functionality via URL parameters
-- Pagination [Can be set according to django-ninja [specs](#https://django-ninja.dev/guides/response/pagination/)]
-- Custom filter expressions
-
-Example filter request:
-```
-POST /api/documents/filter
-{
-    "title": "My Document",
-    "created__gte": "2024-01-01"
-}
-```
-You can basically use everything provided by [django-ninja](https://django-ninja.dev/guides/input/filtering/) & [django-ninja-extra](https://eadwincode.github.io/django-ninja-extra/tutorial/ordering/)!
-
----
-
 
