@@ -181,9 +181,9 @@ Example url: `http://127.0.0.1:8000/api/docs`
 
 ---
 
-### Filtering and Search (Out of the Box!)
+### Filtering (Out of the Box!)
 
-You don't need to implement anything. Django-SwiftAPI automatically enables all filtering functionalities in the `/filter` route using Django Ninja’s features.
+You don't need to implement anything. Django-SwiftAPI automatically enables all filtering functionalities in the `/filter` route using Django Ninja’s features if `filter_enabled = True` in the model-controller.
 
 Try accessing:
 ```
@@ -197,7 +197,7 @@ curl -X POST http://127.0.0.1:8000/api/product/filter \
      -H "Content-Type: application/json" \
      -d '{"name": "earbuds", "price": "10.0"}'
 ```
-This will return all the results containing matches either the "name" or the "price" or both.
+This will return all the results containing exact-matches with either the "name" or the "price" or both.
 
 [Reference](https://django-ninja.dev/guides/input/filtering/)
 
@@ -218,37 +218,6 @@ NINJA_PAGINATION_PER_PAGE = 50  # or any number you prefer
 ```
 
 Now, every paginated endpoint will return 50 items per page unless manually overridden.
-
-#### Customize Per Request
-
-If you want to control pagination manually for any request, you can add query parameters:
-
-- `/api/product/?limit=10&offset=0`
-- `/api/product/?page=2`
-
-##### What do these mean?
-
-| Parameter | Description |
-|----------|-------------|
-| `limit`  | How many items you want per page (e.g., `10`) |
-| `offset` | How many items to skip before starting to return results. For example, `offset=0` starts from the beginning, `offset=10` skips the first 10. |
-| `page`   | Shortcut to jump to a specific page. If `limit=10`, then `page=2` means `offset=10` (i.e., skip the first 10 items). |
-
-You can use either `limit` + `offset` **or** just `page` — whichever feels easier.
-
-#### Example
-
-```http
-POST /api/product/?limit=5&offset=10
-```
-
-This will return 5 products, starting from the 11th product.
-
-```http
-POST /api/product/?page=3
-```
-
-Assuming default page size is 100, this will return items from 201 to 300.
 
 ---
 
