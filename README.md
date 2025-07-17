@@ -47,8 +47,280 @@ INSTALLED_APPS = [
 
 ---
 
-## Usage
-(TODO)
+# Usage Guide for Django SwiftAPI
+
+Welcome to the **Django-SwiftAPI** usage tutorial. This guide will walk you through setting up a fully functional async API server with minimal effort — from starting your project to building secure, filterable, paginated API endpoints backed by user authentication.
+
+> **Django-SwiftAPI** is designed for rapid API development. With just a few lines of code, you get models, controllers, CRUD, filtering, search, pagination, file-handling and authentication — all built on top of Django Ninja and Django Ninja Extra
+
+---
+
+## Project Setup
+
+### Create and activate a virtual environment
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: source venv/Scripts/activate
+```
+
+### Install django-swiftapi
+
+```bash
+pip install django-swiftapi
+```
+
+### Start your project and an app like a regular django project
+
+```bash
+django-admin startproject myproject
+cd myproject
+python manage.py startapp api
+```
+
+### Add required apps in `settings.py`
+
+```python
+INSTALLED_APPS = [
+    ...
+    "ninja_extra",
+    "django_swiftapi",
+    "api",  # your app
+]
+```
+
+---
+
+## Create Your Models
+
+### Extend `SwiftBaseModel` instead of `models.Model`
+
+```python
+# api/models.py
+from django.db import models
+from django_swiftapi.modelcontrol.models import SwiftBaseModel
+
+class Product(SwiftBaseModel):
+    name = models.CharField(max_length=100)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    category = models.CharField(max_length=50)
+```
+
+Run migrations:
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+---
+
+## Set up a Model-Controller
+
+> Full functional CRUD APIs with automatic files-handling support
+
+### Create `api/modelcontrollers.py`
+
+```python
+# api/modelcontrollers.py
+from ninja_extra import api_controller
+from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
+from .models import Product
+
+@api_controller("/product",)
+class ProductController(SwiftBaseModelController):
+    model_to_control = Product
+
+    create_enabled = True
+    retrieve_one_enabled = True
+    filter_enabled = True
+    update_enabled = True
+    delete_enabled = True
+```
+
+---
+
+### Connect the model-controller to your project's root `urls.py`
+
+```python
+from django.contrib import admin
+from django.urls import path, include
+from ninja_extra import NinjaExtraAPI
+from api.modelcontrollers import ProductController
+
+# Register the controller with your API
+api_routes = NinjaExtraAPI(
+    title="myproject",
+    version="development",
+    description="my cool project!",
+)
+api_routes.register_controllers(ProductController,)
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path("api/", api_routes.urls),  # this is where all your endpoints live
+]
+```
+
+✅ That's literally it! Now, `Product` is available at `/api/product` with full CRUD support! 
+
+First, let's start our server with [uvicorn](https://pypi.org/project/uvicorn/):
+```
+pip install uvicorn
+uvicorn myproject.asgi:application --reload
+```
+Now, go to `http://127.0.0.1:8000/api/docs` to find all the routes with request-response examples.
+
+---
+
+## Auto-Generated Documentation
+
+Thanks to ninja & ninja-extra, your project's full api documentation is accessible at `/api/docs`.
+
+Example url: `http://127.0.0.1:8000/api/docs`
+
+---
+
+## Filtering and Search (Out of the Box!)
+
+You don't need to implement anything. Django SwiftAPI automatically enables all filtering and searching functionalities in the `/filter` route using Django Ninja’s features.
+
+### Filtering and Searching
+
+Try accessing:
+```
+curl -X POST http://127.0.0.1:8000/api/product/filter \
+     -H "Content-Type: application/json" \
+     -d '{}'
+```
+This is basically a `POST` request to the route `http://127.0.0.1:8000/api/product/filter` with an empty json body. This will return all product instances with a default pagination of 100 items (you can change it [here](#pagination)). You can easily filter items if a body is provided:
+```
+curl -X POST http://127.0.0.1:8000/api/product/filter \
+     -H "Content-Type: application/json" \
+     -d '{"name": "earbuds", "price": "10.0"}'
+```
+This will return all the results containing matches either the "name" or the "price" or both.
+
+[Reference](https://django-ninja.dev/guides/input/filtering/)
+
+---
+
+## Pagination
+
+When you use any `/filter` endpoint in Django-SwiftAPI, results are paginated by default. All the following functionalities are provided by [django-ninja](https://django-ninja.dev/guides/response/pagination/)
+
+### Default Behavior
+
+By default, 100 items per page are returned in each response. This is controlled by Django Ninja’s default setting.
+
+You can change the default limit globally for your project by adding this to your `settings.py`:
+
+```python
+NINJA_PAGINATION_PER_PAGE = 50  # or any number you prefer
+```
+
+Now, every paginated endpoint will return 50 items per page unless manually overridden.
+
+### Customize Per Request
+
+If you want to control pagination manually for any request, you can add query parameters:
+
+- `/api/product/?limit=10&offset=0`
+- `/api/product/?page=2`
+
+#### What do these mean?
+
+| Parameter | Description |
+|----------|-------------|
+| `limit`  | How many items you want per page (e.g., `10`) |
+| `offset` | How many items to skip before starting to return results. For example, `offset=0` starts from the beginning, `offset=10` skips the first 10. |
+| `page`   | Shortcut to jump to a specific page. If `limit=10`, then `page=2` means `offset=10` (i.e., skip the first 10 items). |
+
+You can use either `limit` + `offset` **or** just `page` — whichever feels easier.
+
+### Example
+
+```http
+POST /api/product/?limit=5&offset=10
+```
+
+This will return 5 products, starting from the 11th product.
+
+```http
+POST /api/product/?page=3
+```
+
+Assuming default page size is 100, this will return items from 201 to 300.
+
+---
+
+## Authentication
+
+If you're using [django-allauth](https://docs.allauth.org/en/latest/), `django_swiftapi` has a built-in authentication class for it. You can use it directly in your modelcontrollers:
+```python
+from ninja_extra import api_controller
+from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
+from django_swiftapi.modelcontrol.authenticators.django_allauth import djangoallauth_userauthentication
+
+# Using allauth authentication
+@api_controller("/product", permissions=[djangoallauth_userauthentication()])
+class ProductController(SwiftBaseModelController):
+    # your codes
+```
+This will enable authentication for all the routes in that modelcontroller. 
+
+If you prefer to allow certain routes without authentication, you can do it simply:
+
+```python
+from ninja_extra import api_controller, permissions
+from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
+from django_swiftapi.modelcontrol.authenticators.django_allauth import djangoallauth_userauthentication
+
+@api_controller("/product", permissions=[djangoallauth_userauthentication()])
+class ProductController(SwiftBaseModelController):
+
+    create_enabled= True
+    create_custom_permissions_list = [permissions.AllowAny]
+```
+Now, the `/create` route can be accessed by anyone. If you wanna use a custom authentication class, follow this [guideline](https://github.com/DeepDiverGuy/django-swiftapi?tab=readme-ov-file#authentication--permissions).
+
+---
+## Extending API Routes
+
+If the built-in functionalities don't meet your needs and you want your own routes & custom functionalities, simply define a method inside the model-controller class and put your own logics. Follow the official documentation from [django-ninja-extra](https://eadwincode.github.io/django-ninja-extra/api_controller/api_controller_route/).
+
+---
+
+## Admin Panel
+
+One of the best features of [Django](https://www.djangoproject.com/) is that it provides a robust and customizable Admin Panel. You can register the models in `admin.py` as usual:
+```python
+from django.contrib import admin
+from .models import Product
+
+admin.site.register(Product)
+```
+
+To access the admin panel, first you need to create a superuser from your terminal:
+```
+python manage.py createsuperuser
+```
+
+The admin panel is accessible at `http://127.0.0.1:8000/admin/`
+
+---
+
+## Final Words
+
+Django-SwiftAPI removes boilerplate and makes you productive in minutes. Compared to Django Ninja or FastAPI, you write:
+- ✅ No manual schema or serializers
+- ✅ No explicit views
+- ✅ No filters setup
+- ✅ No pagination configuration
+- ✅ Everything is automatic via configuration and base classes
+
+Happy Hacking 🚀
+
 
 ---
 
