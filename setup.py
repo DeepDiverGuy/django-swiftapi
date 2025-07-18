@@ -18,6 +18,8 @@ setup(
         'asgiref',
         'Pillow',
     ],
+    license="MIT",
+    license_files=["LICENSE"],
     # entry_points={
     #     'console_scripts': [
     #         'django_swiftapi = django_swiftapi.cli:main',
