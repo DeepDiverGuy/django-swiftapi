@@ -223,13 +223,13 @@ Now, every paginated endpoint will return 50 items per page unless manually over
 
 ### Authentication
 
-If you're using [django-allauth](https://docs.allauth.org/en/latest/), `django_swiftapi` has a built-in authentication class for it. You can use it directly in your modelcontrollers:
+If you're using [django-allauth](https://docs.allauth.org/en/latest/), `django_swiftapi` has a built-in authentication class for it. You can use it directly in your modelcontrollers.
 [Install](https://docs.allauth.org/en/dev/installation/quickstart.html) it if you haven't already. Then use like this:
 
 ```python
 from ninja_extra import api_controller
 from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
-from django_swiftapi.modelcontrol.authenticators.django_allauth import djangoallauth_userauthentication
+from django_swiftapi.modelcontrol.authenticators import djangoallauth_userauthentication
 
 # Using allauth authentication
 @api_controller("/product", permissions=[djangoallauth_userauthentication()])
@@ -243,7 +243,7 @@ If you prefer to allow certain routes without authentication, you can do it simp
 ```python
 from ninja_extra import api_controller, permissions
 from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
-from django_swiftapi.modelcontrol.authenticators.django_allauth import djangoallauth_userauthentication
+from django_swiftapi.modelcontrol.authenticators import djangoallauth_userauthentication
 
 @api_controller("/product", permissions=[djangoallauth_userauthentication()])
 class ProductController(SwiftBaseModelController):
@@ -252,6 +252,8 @@ class ProductController(SwiftBaseModelController):
     create_custom_permissions_list = [permissions.AllowAny]
 ```
 Now, the `/create` route can be accessed by anyone. If you wanna use a custom authentication class, follow this [guideline](https://github.com/DeepDiverGuy/django-swiftapi?tab=readme-ov-file#authentication--permissions).
+
+Go to [Authentication & Permissions](##authentication--permissions) for more details.
 
 ---
 ### Extending API Routes
@@ -298,7 +300,7 @@ Happy Hacking 🚀
 
 ### SwiftBaseModel
 
-`SwiftBaseModel` is an abstract Django model that provides powerful hooks and configurations for automated CRUD operations, user ownership enforcement, and file upload handling when used with the `crud_handler` and `SwiftBaseModelController` from `django-swiftapi`.
+`SwiftBaseModel` is an abstract Django model that provides powerful hooks and configurations for automated CRUD operations, user ownership enforcement, and file upload/download/deletion handling when used with the `SwiftBaseModelController` from `django-swiftapi`.
 
 
 ### Key Features
@@ -331,8 +333,8 @@ class Product(SwiftBaseModel):
             access="public",
             storage=local_storage,
             validator_funcs={
-                file_sizes_valid: {"limit": 5},
-                images_valid: {},
+                validate_file_sizes: {"limit": 5},
+                validate_images: {},
             }
         )
     ]
@@ -346,7 +348,7 @@ class Product(SwiftBaseModel):
 | `created`          | `DateTimeField`      | Auto timestamp when instance is created                       |
 | `updated`          | `DateTimeField`      | Auto timestamp on every update                                |
 | `created_by`       | `ForeignKey(User)`   | Automatically assigned user who created the object            |
-| `created_by_field` | `str` (default: `'created_by'`) | Custom field to use for ownership checking      |
+| `created_by_field` | `str` (default: `'created_by'`) | Custom field to use for ownership checking, the field referred here must point to a `User` model      |
 
 
 ### Configuration Attributes
@@ -393,8 +395,8 @@ files_params_list = [
         access="public",
         storage=local_storage,
         validator_funcs={
-            file_sizes_valid: {"limit": 10},  # limit in MB
-            images_valid: {}
+            validate_file_sizes: {"limit": 5},  # limit in MegaBytes
+            validate_images: {},
         }
     ),
 ]
@@ -555,7 +557,7 @@ You can also customize their `info` and `schemas`. just set the variables proper
 
 ## URL Configuration
 
-Configure your URLs to include the API endpoints ([Reference](https://www.eadwincode.github.io/django-ninja-extra)).
+Configure your URLs to include the API endpoints ([Reference](https://eadwincode.github.io/django-ninja-extra)).
 
 Example:
 
@@ -613,8 +615,8 @@ files_params_list = [
         access="public",
         storage=local_storage,
         validator_funcs={
-            file_sizes_valid: {"limit": 10},  # limit in MB
-            images_valid: {}
+            validate_file_sizes: {"limit": 10},  # limit in MB
+            validate_images: {}
         }
     ),
 ]
@@ -622,7 +624,7 @@ files_params_list = [
 
 ### Configuration
 
-Configure file-handling from inside your [model's file configuration](#file-handling-example), specify a few attributes in setings.py and that's it! No extra work, no nothing. All CRUD functionalities (uploads, downloads, deletions etc) including authentications, permissions, individual-accesses are handled automatically by `django-swiftapi`.
+Configure file-handling from inside your [model's file configuration](#file-handling-example), specify a few attributes in setings.py like below and that's it! No extra work, no nothing. All CRUD functionalities (uploads, downloads, deletions etc) including authentications, permissions, individual-accesses are handled automatically by `django-swiftapi`.
 
 #### For local storage
 In your settings.py:
@@ -674,8 +676,6 @@ async def your_validator(arg_name=default):
 
 # Then, use it inside `FilesParam`
 validator_funcs={
-    file_sizes_valid: {"limit": 5},
-    images_valid: {},
     your_validator: {"<arg_name>": <arg_value>}
 }
 ```
@@ -755,27 +755,28 @@ class custom_storage_class(BaseStorage):
 ---
 
 ## Authentication & Permissions
-`django_swiftapi` is highly compatible with [django-allauth](#https://docs.allauth.org/en/latest/). So, if you're using django-allauth, you can validate authentications directly in your modelcontrollers.
+`django_swiftapi` is highly compatible with [django-allauth](https://docs.allauth.org/en/latest/). So, if you're using django-allauth, you can validate authentications directly in your modelcontrollers.
 
 ### Using `django-allauth` Authentication Class
 
 ```python
 from ninja_extra import api_controller
-from django_swiftapi.modelcontrol.modelcontrollers.base import SwiftBaseModelController
-from django_swiftapi.modelcontrol.authenticators.django_allauth import djangoallauth_userauthentication
+from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
+from django_swiftapi.modelcontrol.authenticators import djangoallauth_userauthentication
 
 # Using allauth authentication
 @api_controller("/api", permissions=[djangoallauth_userauthentication()])
 class MyController(SwiftBaseModelController):
     pass
 ```
+Under the hood, `djangoallauth_userauthentication` takes the `x-session-token` header from the request and verifies if the user is logged-in. That's how `django-allauth` authenticates it's users.
 
 **IMPORTANT NOTE**: Using `@api_controller("/api", permissions=[djangoallauth_userauthentication()])` will enable authentication for all the routes of the corresponding `modelcontroller`. If you wish to allow certain routes to pass without authentication, you can do it simply like this:
 
 ```python
 from ninja_extra import api_controller, permissions
 from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
-from django_swiftapi.modelcontrol.authenticators.django_allauth import djangoallauth_userauthentication
+from django_swiftapi.modelcontrol.authenticators import djangoallauth_userauthentication
 
 @api_controller("/api", permissions=[djangoallauth_userauthentication()])
 class MyController(SwiftBaseModelController):
@@ -794,6 +795,46 @@ files_remove_custom_permissions_list: list = []
 delete_custom_permissions_list: list = []
 ```
 
+###  Extra Permission Check
+
+You can enhance your endpoint protection by using the optional `extra_permission_list`.  
+This lets you specify a list of boolean fields from your **user model** — all of which must be `True` for a user to pass authentication.
+
+
+#### Use Case Example
+
+Suppose your `User` model has these custom fields:
+
+```python
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+class User(AbstractUser):
+    is_verified = models.BooleanField(default=False)
+    is_manager = models.BooleanField(default=False)
+```
+
+You can now protect any SwiftAPI controller like so:
+
+```python
+from ninja_extra import api_controller
+from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
+from django_swiftapi.modelcontrol.authenticators import djangoallauth_userauthentication
+
+@api_controller("/api", permissions=[djangoallauth_userauthentication(extra_permission_list=["is_verified", "is_manager"])])
+class MyController(SwiftBaseModelController):
+    pass
+```
+
+In this case, the authenticated user **must** have both `is_verified=True` and `is_manager=True` to access this controller’s endpoints.
+
+#### How it Works
+
+- Each string in `extra_permission_list` refers to boolean fields on your user model.
+- All listed fields must be `True` — otherwise, authentication fails.
+- Perfect for staff-only, verified-user, or gated-feature access control.
+
+
 ### Enabling Object-Level Permissions
 
 If you wish to give object-specific permissions like only the creator of that object can `rerieve`, `filter`, `update`, `remove` or `delete` that object, you can do so like this:
@@ -809,8 +850,10 @@ delete_obj_permission_check = True
 Example:
 
 ```python
+from ninja_extra import api_controller
 from django_swiftapi.modelcontrol.modelcontrollers import SwiftBaseModelController
 
+@api_controller("/api", permissions=[djangoallauth_userauthentication()])
 class DocumentController(SwiftBaseModelController):
     retrieve_one_obj_permission_check = True  # Only owner can retrieve
     update_obj_permission_check = True        # Only owner can update
@@ -843,4 +886,3 @@ class MyController(SwiftBaseModelController):
 3. **Object Level**: Ownership-based permissions
 
 ---
-
