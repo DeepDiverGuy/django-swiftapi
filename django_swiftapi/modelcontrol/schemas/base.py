@@ -4,7 +4,7 @@ from pydantic.fields import FieldInfo
 from django.db import models
 from django.db.models import Model, ForeignKey, OneToOneField, ManyToManyField, Q
 from django.core.exceptions import ImproperlyConfigured
-from ninja import Schema, FilterSchema, filter_schema
+from ninja import Schema, ModelSchema, FilterSchema, filter_schema
 from ninja.orm import create_schema
 from ninja.files import UploadedFile
 
@@ -19,7 +19,7 @@ class InfoResponseSchema(Schema):
 def create_custom_schema(
         model:Model, 
         schema_type: Literal['request', 'response'], 
-        action: Literal["create", "retrieve", "filter", "update", "delete"], 
+        action: Literal["create", "retrieve", "search", "filter", "update", "delete"], 
         depth=0, 
         optional_fields='__all__'
     ):
@@ -53,7 +53,7 @@ def create_custom_schema(
 def schema_generator(
         model: Model, 
         schema_type: Literal['request', 'response'],
-        action: Literal["create", "retrieve", "filter", "update", "delete"], 
+        action: Literal["create", "retrieve", "search", "filter", "update", "delete"], 
         files_fields_only = False, # if true, schema will only contain files fields. this will only effect `request schemas`
         custom_depth: int = None # this defines the depth of the relational fields of the  response schema. this only effects `response` schemas
     ):
@@ -90,6 +90,8 @@ def schema_generator(
         # exclude = model.exclude_in_response
         if action == "filter":
             # schemas[200] = List[create_schema(model=model, depth=depth, exclude=exclude)]
+            schemas[200] = List[create_custom_schema(model=model, schema_type=schema_type, depth=depth, action=action)]
+        elif action == "search":
             schemas[200] = List[create_custom_schema(model=model, schema_type=schema_type, depth=depth, action=action)]
         else:
             # schemas[200] = create_schema(model=model, depth=depth, exclude=exclude)

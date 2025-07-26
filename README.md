@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Django SwiftAPI**, a fully async API framework, provides a powerful yet simple abstraction for automatically generating CRUD APIs, schema generation and robust file handling, built on top of [django-ninja-extra](https://eadwincode.github.io/django-ninja-extra/). The core of this system is the use of:
+**Django SwiftAPI**, a fully async API framework, provides a powerful yet simple abstraction for automatically generating CRUD APIs, schema generation and robust file handling, built on top of [django-ninja-extra](https://eadwincode.github.io/django-ninja-extra/). Built for rapid development, it eliminates the need to write views or serializers manually — just configure your models & controllers and deploy. The core of this system is the use of:
 
 - `SwiftBaseModel`: A base model with built-in support for controlling request & responses, CRUD specifications, file fields, ownership, schema customization, object validations etc all out-of-the-box.
 - `SwiftBaseModelController`: A customizable controller that automates schema generations & CRUD operations. All you need to do is plug-in your `SwiftBaseModel` & it handles everything in the background. 
@@ -133,6 +133,7 @@ class ProductController(SwiftBaseModelController):
 
     create_enabled = True
     retrieve_one_enabled = True
+    search_enabled = True
     filter_enabled = True
     update_enabled = True
     delete_enabled = True
@@ -199,13 +200,36 @@ curl -X POST http://127.0.0.1:8000/api/product/filter \
 ```
 This will return all the results containing exact-matches with either the "name" or the "price" or both.
 
+You can also control the pagination by putting parameters like: 
+```
+http://127.0.0.1:8000/api/product/filter?limit=20&offset=0
+```
+It basically shows 20 results from the beginning. Go to [Pagination](#pagination) for more details.
+
 [Reference](https://django-ninja.dev/guides/input/filtering/)
 
 ---
 
+### Searching (Out of the Box!)
+Django-SwiftAPI comes with built-in search functionality — no manual implementation needed.
+
+If you set `search_enabled = True` in your ModelController, SwiftAPI will automatically expose a `/search` route using [Django Ninja Extra](https://eadwincode.github.io/django-ninja-extra/)'s powerful Searching integration.
+
+Try accessing:
+```
+http://127.0.0.1:8000/api/product/search?search=earbuds
+```
+This will return all records where any searchable field contains the word earbuds, either fully or partially.
+
+Django-SwiftAPI directly integrates Ninja-Extra’s searching system, so you can follow their official [searching guide](https://eadwincode.github.io/django-ninja-extra/tutorial/searching/) for advanced use-cases like customizing searchable fields or handling complex lookups.
+
+As like in the `/filter` route, you can use controlled [pagination](#pagination) here by using two parameters `limit` and `offset`.
+
+----
+
 ### Pagination
 
-When you use any `/filter` endpoint in Django-SwiftAPI, results are paginated by default. The following functionality is provided by [django-ninja](https://django-ninja.dev/guides/response/pagination/)
+When you use any `/filter` or `/search` endpoint in Django-SwiftAPI, results are paginated by default. The following functionality is provided by [django-ninja](https://django-ninja.dev/guides/response/pagination/)
 
 #### Default Behavior
 
@@ -218,6 +242,16 @@ NINJA_PAGINATION_PER_PAGE = 50  # or any number you prefer
 ```
 
 Now, every paginated endpoint will return 50 items per page unless manually overridden.
+
+#### Custom behavior
+You can control pagination by passing the `limit` and `offset` query parameters.
+
+Example:
+```
+/api/product/search?search=earbuds&limit=20&offset=40
+
+```
+This will return 20 results, starting from the 41st record.
 
 ---
 
@@ -361,7 +395,8 @@ These are **class-level attributes**, not DB fields.
 | `required_to_update`          | `list[str]`  | List of field names required during update                                  |
 | `exclude_in_request`          | `list[str]`  | Fields to exclude while generating request schemas                          |
 | `exclude_in_response`         | `list[str]`  | Fields to exclude from response schemas                                     |
-| `obj_owner_check_before_save` | `bool`       | If `True`, ownership will be verified before saving                         |
+| `obj_owner_check_before_save` | `bool`       | If `True`, ownership will be verified before saving. Meaning, only the `user` who created the object can save it                         |
+| `obj_fields_to_check_owner` | `list[str]`       | Field names pointing to related objects whose `created_by` must match `request.user`                         |
 | `files_fields`                | `list[str]`  | Names of file fields (typically `ArrayField`s)                              |
 | `files_params_list`           | `list[FilesParam]` | Full configuration for file handling per field                        |
 
@@ -419,20 +454,13 @@ If you use a different field for ownership, specify it with:
 created_by_field = "your_owner_field_name"
 ```
 
+If you want to ensure that the requesting user is the owner not only of the main object but also of related objects referenced via ForeignKey fields, you can use the `obj_fields_to_check_owner` attribute.
 
-### Summary of Key Attributes
+- `obj_fields_to_check_owner`:
 
-| Attribute               | Type           | Description |
-|-------------------------|----------------|-------------|
-| `required_to_create`    | `list[str]`    | Fields required when creating an object (only applies during `crud_handler` operations) |
-| `required_to_update`    | `list[str]`    | Fields required when updating an object (only applies during `crud_handler` operations) |
-| `exclude_in_request`    | `list[str]`    | Fields to exclude from request schema generation |
-| `exclude_in_response`   | `list[str]`    | Fields to exclude from response schema generation |
-| `files_fields`          | `list[str]`    | List of fields representing file arrays (usually Django `ArrayField`) |
-| `files_params_list`     | `list[FilesParam]` | List of `FilesParam` configurations for each file field |
-| `obj_owner_check_before_save` | `bool`  | Whether to enforce ownership validation before saving an object |
-| `created_by_field`      | `str`          | Name of the field used for ownership validation (default `"created_by"`) |
+    A list of string field names representing ForeignKey relationships on the main model. For each specified ForeignKey field, the ownership check will verify that the requesting user is also the owner of the related object.
 
+This way, the permission or validation logic will recursively check ownership on those related objects as well, ensuring more secure and fine-grained access control.
 
 This documentation outlines how to utilize the `SwiftBaseModel` to build models that seamlessly integrate with the CRUD operations and file handling mechanisms provided by django-swiftapi.
 
@@ -471,6 +499,15 @@ class DocumentController(SwiftBaseModelController):
     retrieve_one_response_schemas: dict[int, Schema] = None
     retrieve_one_custom_permissions_list: list = []
     retrieve_one_obj_permission_check: bool = False
+
+    search_enabled: bool = False
+    search_path: str = 'search'
+    search_info: str = 'search & get the listed result'
+    search_depth = 0
+    search_response_schemas: dict[int, Schema] = None
+    search_custom_permissions_list: list = []
+    search_obj_permission_check: bool = False
+    search_premium_check: bool = False
 
     filter_enabled: bool = False
     filter_path: str = 'filter'
@@ -521,7 +558,8 @@ class DocumentController(SwiftBaseModelController):
 |--------|------|---------|-------------|
 | `create_enabled` | bool | `False` | Enable create endpoint |
 | `retrieve_one_enabled` | bool | `False` | Enable retrieve endpoint |
-| `filter_enabled` | bool | `False` | Enable filter/search endpoint |
+| `search_enabled` | bool | `False` | Enable search endpoint |
+| `filter_enabled` | bool | `False` | Enable filter endpoint |
 | `update_enabled` | bool | `False` | Enable update endpoint |
 | `delete_enabled` | bool | `False` | Enable delete endpoint |
 
@@ -545,6 +583,7 @@ class DocumentController(SwiftBaseModelController):
 |--------|------|---------|-------------|
 | `create_path` | str | `'create'` | Custom path for create endpoint |
 | `retrieve_one_path` | str | `'retrieveone/{id}'` | Custom path for retrieve endpoint |
+| `search_path` | str | `'search'` | Custom path for search endpoint |
 | `filter_path` | str | `'filter'` | Custom path for filter endpoint |
 | `update_path` | str | `'{id}/update'` | Custom path for update endpoint |
 | `delete_path` | str | `'{id}/delete'` | Custom path for delete endpoint |

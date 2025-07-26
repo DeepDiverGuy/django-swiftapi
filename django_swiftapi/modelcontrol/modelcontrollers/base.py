@@ -1,5 +1,6 @@
-from django.db.models import Model
-from ninja.pagination import paginate
+from django.db import models
+from django.db.models.fields.related import RelatedField
+from ninja.pagination import paginate, LimitOffsetPagination
 from ninja import Schema
 from ninja_extra import (
     ModelControllerBase,
@@ -8,10 +9,14 @@ from ninja_extra import (
     http_post, 
     http_delete
 )
+from ninja_extra.searching import searching, Searching
 from django_swiftapi.dynamic_environment import run_new_environment
 from django_swiftapi.modelcontrol.schemas.base import schema_generator, filterschema_generator
 from django_swiftapi.crud_operation.core import crud_handler
 
+
+
+Model = models.Model
 
 # Example Decorator below
 # @api_controller("/something", permissions=[])
@@ -62,7 +67,7 @@ class SwiftBaseModelController(ModelControllerBase):
 
     model_to_control: Model
 
-    # ignore anything referred to as "premium", this is not implemented yet
+    # ignore anything referred as "premium". this is not implemented yet
     premium_checker = None
     product_type: str = None
     product_asset_model: Model = None
@@ -84,6 +89,15 @@ class SwiftBaseModelController(ModelControllerBase):
     retrieve_one_custom_permissions_list: list = []
     retrieve_one_obj_permission_check: bool = False
     retrieve_one_premium_check: bool = False
+
+    search_enabled: bool = False
+    search_path: str = 'search'
+    search_info: str = 'search & get the listed result'
+    search_depth = 0
+    search_response_schemas: dict[int, Schema] = None
+    search_custom_permissions_list: list = []
+    search_obj_permission_check: bool = False
+    search_premium_check: bool = False
 
     filter_enabled: bool = False
     filter_path: str = 'filter'
@@ -194,6 +208,55 @@ async def {retrieve_one_func_name}({retrieve_one_args}):
         
             cls.retrieve_one = retrieve_one_api_view
 
+        if cls.search_enabled:
+            # no need to use request schema for search
+            # search_request_schemas = cls.search_request_schemas or filterschema_generator(model=cls.model_to_control)
+            search_response_schemas = cls.search_response_schemas or schema_generator(model=cls.model_to_control, schema_type='response', action='search', custom_depth=cls.search_depth, )
+
+            search_func_name = 'search'
+            search_extra_globals={'cls': cls,}
+            search_args = "*args, "
+            search_codes = f"""
+from django.db.models import Q
+from ninja.responses import Response
+
+# premium_checker = cls.premium_checker
+
+async def {search_func_name}({search_args}):
+    model_to_control = cls.model_to_control
+
+    if cls.search_premium_check:
+        premium_checker = cls.premium_checker()
+        await premium_checker.initialize(
+            product_type=cls.product_type, 
+            asset_model=cls.product_asset_model,
+            model_to_control=model_to_control,
+            request=request
+            )
+        # for instance in instance_list:
+        #     premium_passed, msg = await premium_checker.retrieve_constraints(m_t_c_instance_id=instance.id)
+        #     if not premium_passed:
+        #         return Response({{"message": msg, "payment_status": premium_checker.payment_status}}, status=401)
+        if premium_checker.payment_status == "Payment is due. Service has been cut-off." or premium_checker.payment_status == "N/A":
+            return Response({{"payment status": premium_checker.payment_status}}, status=401)
+
+    q = Q(**{{model_to_control.created_by_field: request.user}}) if cls.search_obj_permission_check else Q()
+    instance_list = model_to_control.objects.filter(q)
+    
+    return instance_list
+"""
+            searching_fields = []
+            for f in cls.model_to_control._meta.get_fields():
+                if isinstance(f, RelatedField):
+                    searching_fields.append(f.name + "__id")
+                else:
+                    searching_fields.append(f.name)
+
+            search_func = run_new_environment(search_func_name, search_codes, extra_globals=search_extra_globals)
+            search_api_view = http_get(f"{cls.search_path}", summary=cls.search_info, permissions=cls.search_custom_permissions_list or None, response=search_response_schemas)(paginate(LimitOffsetPagination)(searching(Searching, search_fields=searching_fields)(search_func)))
+
+            cls.search = search_api_view
+
         if cls.update_enabled:
             update_request_schemas = cls.update_request_schemas or schema_generator(model=cls.model_to_control, schema_type='request', action="update", files_fields_only=False)
             # update_response_schemas = cls.update_response_schemas or schema_generator(model=cls.model_to_control, schema_type='response', action="update", files_fields_only=False, custom_depth=0)
@@ -237,7 +300,7 @@ async def {update_func_name}({update_args}):
 
             filter_func_name = 'filter'
             filter_extra_globals={'cls': cls,}
-            filter_args = "*args, request, "
+            filter_args = "*args, "
             filter_schema_name = ""
             for name, annot_name, annot_cls, required in filter_request_schemas: # index, (name, annot_name, annot_cls, required) in enumerate(filter_request_schemas):
                 filter_args += f"{name}: {annot_name}=None, " if not required else f"{name}: {annot_name}, "
@@ -275,7 +338,7 @@ async def {filter_func_name}({filter_args}):
 """
 
             filter_func = run_new_environment(filter_func_name, filter_codes, extra_globals=filter_extra_globals)
-            filter_api_view = paginate()(http_post(f"{cls.filter_path}", summary=cls.filter_info, permissions=cls.filter_custom_permissions_list or None, response=filter_response_schemas)(filter_func))
+            filter_api_view = http_post(f"{cls.filter_path}", summary=cls.filter_info, permissions=cls.filter_custom_permissions_list or None, response=filter_response_schemas)((paginate(LimitOffsetPagination)(filter_func)))
 
             cls.filter = filter_api_view
 
